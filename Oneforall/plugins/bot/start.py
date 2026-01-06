@@ -29,6 +29,21 @@ from Oneforall.misc import SUDOERS
 async def start_pm(client, message: Message, _):
     await add_served_user(message.from_user.id)
     await message.react("❤")
+
+    await loading_1.edit_text("<b>ʟᴏᴀᴅɪɴɢ</b>")
+await asyncio.sleep(0.1)
+
+await loading_1.edit_text("<b>ʟᴏᴀᴅɪɴɢ.</b>")
+await asyncio.sleep(0.1)
+
+await loading_1.edit_text("<b>ʟᴏᴀᴅɪɴɢ..</b>")
+await asyncio.sleep(0.1)
+
+await loading_1.edit_text("<b>ʟᴏᴀᴅɪɴɢ...</b>")
+await asyncio.sleep(0.1)
+
+await loading_1.delete()
+
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
         if name[0:4] == "help":
@@ -151,7 +166,7 @@ async def welcome(client, message: Message):
 
             if isinstance(SUDOERS, int): 
                 if member.id == SUDOERS:
-                    AMBOT = f"#Sudo_User\n\n 𝙎𝙩𝙖𝙮 𝘼𝙡𝙚𝙧𝙩 ⚠️\n\n𝗢𝗙 {app.mention} 𝗦𝗨𝗗𝗢 𝗨𝗦𝗘𝗥 {member.mention} just joined the group <code>{message.chat.title}</code>.\n\n𝗦𝘂𝗽𝗽𝗼𝗿𝘁 𝗠𝗲 𝗛𝗲𝗿𝗲 👇🏻🤭💕\n\n┏━━━━━━━━━━━━┓\n┣★ 𝗨𝗽𝗱𝗮𝘁𝗲 -: @Buyer_infinity  \n┣★ 𝗨𝗽𝗱𝗮𝘁𝗲 -: @Destiny_Infinity_Og \n┣★ 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 -: @Bots_Are_Alive \n┣★ 𝗕𝗼𝘁 𝗨𝗦𝗘𝗥𝗡𝗔𝗠𝗘 -: @{app.username}\n┣★ 𝗦𝘂𝗽𝗲𝗿𝗯𝗮𝗻 𝗟𝗼𝗴𝘀 -: @who_cares_qt\n┣★ 𝙒𝙝𝙤 𝙘𝙖𝙧𝙚𝙨 𝙗𝙖𝙗𝙮 -: @positive_thinking135\n┣★ ᴘᴏꜱɪᴛɪᴠɪᴛʏ ᴋɪ ᴅᴜɴɪʏᴀ 𝗝𝗼𝗶𝗻 𝗛𝗲𝗿𝗲 -:<code> </code>."
+                    AMBOT = f"<blockquote>#Sudo_User\n\n 𝙎𝙩𝙖𝙮 𝘼𝙡𝙚𝙧𝙩 ⚠️\n\n𝗢𝗙 {app.mention} 𝗦𝗨𝗗𝗢 𝗨𝗦𝗘𝗥 {member.mention} just joined the group <code>{message.chat.title}</code>.\n\n𝗦𝘂𝗽𝗽𝗼𝗿𝘁 𝗠𝗲 𝗛𝗲𝗿𝗲 👇🏻🤭💕\n\n┏━━━━━━━━━━━━┓\n┣★ 𝗨𝗽𝗱𝗮𝘁𝗲 -: @dark_musictm   \n┣★ 𝗨𝗽𝗱𝗮𝘁𝗲 -: @snowy_hometown \n┣★ 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 -: @dark_musicsupport \n┣★ 𝗕𝗼𝘁 𝗨𝗦𝗘𝗥𝗡𝗔𝗠𝗘 -: @{app.username}\n┣★ 𝗦𝘂𝗽𝗲𝗿𝗯𝗮𝗻 𝗟𝗼𝗴𝘀 -: @who_cares_qt\n┣★ 𝙒𝙝𝙤 𝙘𝙖𝙧𝙚𝙨 𝙗𝙖𝙗𝙮 -: @positive_thinking135\n┣★ ᴘᴏꜱɪᴛɪᴠɪᴛʏ ᴋɪ ᴅᴜɴɪʏᴀ 𝗝𝗼𝗶𝗻 𝗛𝗲𝗿𝗲 -:<code> </code>.</blockquote>"
                     sent_message = await message.reply_text(AMBOT, reply_markup=buttons)
                     await asyncio.sleep(60)
                     await sent_message.delete()  
@@ -159,7 +174,7 @@ async def welcome(client, message: Message):
 
             elif isinstance(SUDOERS, (list, set)):
                 if member.id in SUDOERS:
-                    AMBOT = f"#Sudo_User\n\n 𝙎𝙩𝙖𝙮 𝘼𝙡𝙚𝙧𝙩 ⚠️\n\n𝗢𝗙 {app.mention} 𝗦𝗨𝗗𝗢 𝗨𝗦𝗘𝗥 {member.mention} just joined the group <code>{message.chat.title}</code>.\n\n𝗦𝘂𝗽𝗽𝗼𝗿𝘁 𝗠𝗲 𝗛𝗘𝗥𝗘 👇🏻🤭💕\n\n┏━━━━━━━━━━━━┓\n┣★ 𝗨𝗽𝗱𝗮𝘁𝗲 -: @Destiny_Infinity_Og  \n┣★ 𝗨𝗽𝗱𝗮𝘁𝗲 -:  \n┣★ 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 -: @Bots_Are_Alive \n┣★ 𝗕𝗢𝗧 𝗨𝗦𝗘𝗥𝗡𝗔𝗠𝗘 -: @{app.username}\n┣★ 𝗦𝘂𝗽𝗲𝗿𝗕𝗮𝗻 𝗟𝗢𝗚𝗦 -: A\n┣★ Infinity_bots -: @positive_thinking135\n┣★ 𝗝𝗼𝗶𝗻 𝗛𝗲𝗿𝗲 -:<code></code>."
+                    AMBOT = f"#Sudo_User\n\n 𝙎𝙩𝙖𝙮 𝘼𝙡𝙚𝙧𝙩 ⚠️\n\n𝗢𝗙 {app.mention} 𝗦𝗨𝗗𝗢 𝗨𝗦𝗘𝗥 {member.mention} just joined the group <code>{message.chat.title}</code>.\n\n𝗦𝘂𝗽𝗽𝗼𝗿𝘁 𝗠𝗲 𝗛𝗘𝗥𝗘 👇🏻🤭💕\n\n┏━━━━━━━━━━━━┓\n┣★ 𝗨𝗽𝗱𝗮𝘁𝗲 -: @dark_musictm \n┣★ 𝗨𝗽𝗱𝗮𝘁𝗲 -: @snowy_hometown \n┣★ 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 -: @dark_musicsupoort \n┣★ 𝗕𝗢𝗧 𝗨𝗦𝗘𝗥𝗡𝗔𝗠𝗘 -: @{app.username}\n┣★ 𝗦𝘂𝗽𝗲𝗿𝗕𝗮𝗻 𝗟𝗢𝗚𝗦 -: A\n┣★ dark_superbans -: @positive_thinking135\n┣★ 𝗝𝗼𝗶𝗻 𝗛𝗲𝗿𝗲 -:<code></code>."
                     sent_message = await message.reply_text(AMBOT, reply_markup=buttons)
                     await asyncio.sleep(60)
                     await sent_message.delete()  
