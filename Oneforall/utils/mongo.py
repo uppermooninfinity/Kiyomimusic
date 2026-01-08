@@ -17,7 +17,7 @@ db = mongo.Oneforall
 
 coupledb = db.couple
 
-STATS_COLL = db.quiz_stats
+STATSCOLL = db.quiz_stats
 
 afkdb = db.afk
 
