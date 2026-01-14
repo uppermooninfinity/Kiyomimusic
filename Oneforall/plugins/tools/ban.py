@@ -189,7 +189,7 @@ async def banFunc(_, message: Message):
     msg = (
         f"**Banned User:** {mention}\n"
         f"**Banned By:** {message.from_user.mention if message.from_user else 'Anon'}\n"
-        f"**[ ](https://files.catbox.moe/m4rjwd.mp4)\n"
+        f"**[ ](https://files.catbox.moe/272tdj.mp4)\n"
     )
     if message.command[0][0] == "s":
         await message.reply_to_message.delete()
@@ -244,7 +244,7 @@ async def unban_func(_, message: Message):
     replied_message = message.reply_to_message
     if replied_message:
         message = replied_message
-    await message.reply_text(f"Unbanned! {umention} [ ](https://files.catbox.moe/eynjfq.mp4)\b")
+    await message.reply_text(f"Unbanned! {umention} [ ](https://files.catbox.moe/272tdj.mp4)\b")
 
 
 # Promote Members
@@ -471,7 +471,7 @@ async def mute(_, message: Message):
             "I can't mute an admin, You know the rules, so do i."
         )
     mention = (await app.get_users(user_id)).mention
-    keyboard = ikb({"🚨  Unmute  🚨": f"unmute_{user_id}"})
+    keyboard = ikb({"🌙  Unmute  🌙": f"unmute_{user_id}"})
     msg = (
         f"**Muted User:** {mention}\n"
         f"**Muted By:** {message.from_user.mention if message.from_user else 'Anon'}\n"
