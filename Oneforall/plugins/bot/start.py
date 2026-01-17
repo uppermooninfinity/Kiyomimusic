@@ -29,6 +29,35 @@ from Oneforall.misc import SUDOERS
 async def start_pm(client, message: Message, _):
     await add_served_user(message.from_user.id)
     await message.react("❤")
+        # 1️⃣ Send initial animation message
+    accha = await message.reply_text("ꨄ︎ ѕ")  # initial text
+
+    # 2️⃣ Animation sequence
+    text_sequence = [
+        "ꨄ︎ ѕ",
+        "ꨄ sт",
+        "ꨄ︎ ѕтα",
+        "ꨄ︎ ѕтαя",
+        "ꨄ sтαят",
+        "ꨄ︎ sтαятι",
+        "ꨄ︎ sтαятιи",
+        "ꨄ sтαятιиg",
+        "ꨄ︎ ѕтαятιиg."
+    ]
+    dots = ["", ".", "..", "..."]
+
+    # animate main text
+    for txt in text_sequence:
+        await accha.edit(txt)
+        await asyncio.sleep(0.05)
+
+    # animate dots
+    for i in range(4):
+        await accha.edit(f"{text_sequence[-1][:-1]}{dots[i]}")
+        await asyncio.sleep(0.1)
+
+    # 3️⃣ Delete the animation message
+    await accha.delete()
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
         if name[0:4] == "help":
