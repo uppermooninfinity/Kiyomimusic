@@ -61,11 +61,11 @@ def stream_markup_timer(_, vidid, chat_id, played, dur):
             )
         ],
         [
-            InlineKeyboardButton(text="▶️", callback_data=f"ADMIN Resume|{chat_id}"),
-            InlineKeyboardButton(text="I⏸️", callback_data=f"ADMIN Pause|{chat_id}"),
+            InlineKeyboardButton(text="▷", callback_data=f"ADMIN Resume|{chat_id}"),
+            InlineKeyboardButton(text="II", callback_data=f"ADMIN Pause|{chat_id}"),
             InlineKeyboardButton(text="↻", callback_data=f"ADMIN Replay|{chat_id}"),
-            InlineKeyboardButton(text="⏭️", callback_data=f"ADMIN Skip|{chat_id}"),
-            InlineKeyboardButton(text="⏹️", callback_data=f"ADMIN Stop|{chat_id}"),
+            InlineKeyboardButton(text="‣‣I", callback_data=f"ADMIN Skip|{chat_id}"),
+            InlineKeyboardButton(text="▢", callback_data=f"ADMIN Stop|{chat_id}"),
         ],
         [
             InlineKeyboardButton("📥ᴘʀᴏᴍᴏ📥", url="https://t.me/snowy_hometown"),
