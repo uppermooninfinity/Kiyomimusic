@@ -40,7 +40,7 @@ HEROKU_API_KEY = getenv("HEROKU_API_KEY")
 
 UPSTREAM_REPO = getenv(
     "UPSTREAM_REPO",
-    "https://github.com/itzarjuna1/Dark-bot-infinityX",
+    "https://github.com/uppermooninfinity/Kiyomimusic",
 )
 UPSTREAM_BRANCH = getenv("UPSTREAM_BRANCH", "main")
 GIT_TOKEN = getenv(
@@ -96,7 +96,7 @@ autoclean = []
 confirmer = {}
 
 
-START_VIDEO_URL = getenv("START_VIDEO_URL", "https://files.catbox.moe/ys1wfm.mp4")
+START_VIDEO_URL = getenv("START_VIDEO_URL", "https://files.catbox.moe/m8npjm.mp4")
 PING_IMG_URL = getenv("PING_IMG_URL", "https://files.catbox.moe/0ehtgk.jpg")
 PLAYLIST_IMG_URL = "https://files.catbox.moe/2m6yep.jpg"
 STATS_IMG_URL = "https://files.catbox.moe/0ehtgk.jpg"
