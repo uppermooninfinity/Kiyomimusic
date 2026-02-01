@@ -3,9 +3,8 @@ import os
 import threading
 import asyncio
 import requests
-import re
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse, parse_qs
+from urllib.parse import urljoin, urlparse
 from fpdf import FPDF
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -16,45 +15,35 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from config import BOT_TOKEN
-
 # ================= CONFIG =================
+BOT_TOKEN = ""
+
 SEC_HEADERS = [
     "X-Frame-Options",
     "Content-Security-Policy",
-    "X-Content-Type-Options",
-    "Strict-Transport-Security",
-    "Referrer-Policy",
+    "X-XSS-Protection",
 ]
 
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0 Safari/537.36"
+        "Chrome/120.0.0.0 Safari/537.36"
     )
 }
 
-MAX_PAGES = 80
+MAX_PAGES = 50
 PROGRESS_STEP = 5
-TIMEOUT = 10
-sys.setrecursionlimit(4000)
+sys.setrecursionlimit(3000)
 # =========================================
 
 
-# ============== UTILS ==============
-def small_caps(text: str) -> str:
-    table = str.maketrans(
-        "abcdefghijklmnopqrstuvwxyz",
-        "ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘǫʀsᴛᴜᴠᴡxʏᴢ"
-    )
-    return text.lower().translate(table)
-
-
-def pdf_safe(text, max_len=100):
+# ============== PDF SAFETY ==============
+def pdf_safe(text, max_len=80):
     if not isinstance(text, str):
         text = str(text)
-    return text[:max_len].encode("latin-1", "ignore").decode("latin-1")
+    text = text[:max_len]
+    return text.encode("latin-1", "ignore").decode("latin-1")
 
 
 # ============== ASYNC HELPERS ==============
@@ -74,120 +63,46 @@ async def store_results(context, results):
     context.user_data["results_ready"] = True
 
 
-# ============== CORE SCANNER ==============
+# ============== CORE LOGIC ==============
 def analyze_and_extract(url):
-    r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+    r = requests.get(url, headers=HEADERS, timeout=8, stream=True)
 
-    if "text/html" not in r.headers.get("Content-Type", ""):
-        raise Exception("non-html")
+    content_type = r.headers.get("Content-Type", "")
+    if "text/html" not in content_type:
+        r.close()
+        raise Exception("Non-HTML content skipped")
 
     soup = BeautifulSoup(r.text, "html.parser")
 
-    missing_headers = [h for h in SEC_HEADERS if h not in r.headers]
-
-    cookie_issues = []
-    cookies = r.headers.get("Set-Cookie", "")
-    if cookies:
-        if "secure" not in cookies.lower():
-            cookie_issues.append("secure flag missing")
-        if "httponly" not in cookies.lower():
-            cookie_issues.append("httponly missing")
-
-    params = parse_qs(urlparse(url).query)
-    suspicious_params = [
-        p for p in params if re.search(r"id|token|auth|key|session", p, re.I)
-    ]
-
-    insecure_forms = 0
-    for f in soup.find_all("form"):
-        action = f.get("action", "")
-        if action.startswith("http://"):
-            insecure_forms += 1
-
-    js_secrets = 0
-    for s in soup.find_all("script"):
-        if s.string and re.search(r"api[_-]?key|secret|token", s.string, re.I):
-            js_secrets += 1
-
-    links = []
-    for a in soup.find_all("a", href=True):
-        links.append(a["href"])
-
-    risk = "low"
-    if missing_headers or cookie_issues or suspicious_params:
-        risk = "medium"
-    if js_secrets or insecure_forms:
-        risk = "high"
-
-    return {
+    data = {
         "url": url,
         "status": r.status_code,
-        "missing_headers": missing_headers,
-        "cookie_issues": cookie_issues,
-        "params": suspicious_params,
-        "insecure_forms": insecure_forms,
-        "js_secrets": js_secrets,
-        "risk": risk,
-        "links": links,
+        "https": url.startswith("https"),
+        "headers": {h: h in r.headers for h in SEC_HEADERS},
+        "login": any(x in url.lower() for x in ["login", "signin"]),
+        "admin": any(x in url.lower() for x in ["admin", "dashboard"]),
+        "links": [],
     }
 
+    for a in soup.find_all("a", href=True):
+        data["links"].append(a["href"])
 
-# ============== TEXT REPORT ==============
-def generate_text_report(results, limit=10):
-    high = medium = low = 0
-    findings = []
-
-    for r in results:
-        if r["risk"] == "high":
-            high += 1
-        elif r["risk"] == "medium":
-            medium += 1
-        else:
-            low += 1
-
-        if len(findings) >= limit:
-            continue
-
-        issues = []
-        if r["missing_headers"]:
-            issues.append(f"missing headers ({len(r['missing_headers'])})")
-        if r["cookie_issues"]:
-            issues.append("cookie insecurity")
-        if r["params"]:
-            issues.append("suspicious url parameters")
-        if r["insecure_forms"]:
-            issues.append("insecure http form")
-        if r["js_secrets"]:
-            issues.append("possible js secret leak")
-
-        if issues:
-            findings.append(
-                f"• {r['url']}\n  ↳ " + "; ".join(issues)
-            )
-
-    report = (
-        f"scan summary\n"
-        f"pages scanned: {len(results)}\n"
-        f"risk distribution → high: {high}, medium: {medium}, low: {low}\n\n"
-        f"minor vulnerability findings:\n"
-    )
-
-    report += "\n".join(findings) if findings else "no obvious weaknesses detected"
-    return small_caps(report)
+    return data
 
 
-# ============== THREAD RUNNER ==============
-def run_scan(update, context, loop):
+# 🔴 NOTICE: loop is PASSED IN, not fetched
+def run_scan(update: Update, context: ContextTypes.DEFAULT_TYPE, loop):
     target = context.user_data["target"]
-    message = update._scan_message
+    query = update.callback_query
 
     visited = set()
-    queue = [target]
     results = []
+    queue = [target]
     count = 0
 
     while queue and len(visited) < MAX_PAGES:
         url = queue.pop(0)
+
         if url in visited:
             continue
         if urlparse(url).netloc != urlparse(target).netloc:
@@ -198,134 +113,110 @@ def run_scan(update, context, loop):
         try:
             data = analyze_and_extract(url)
             results.append(data)
-            for h in data["links"]:
-                full = urljoin(url, h).split("#")[0]
-                if full not in visited:
-                    queue.append(full)
+
+            for href in data["links"]:
+                link = urljoin(url, href).split("#")[0]
+                if link not in visited and link not in queue:
+                    queue.append(link)
         except:
-            pass
+            continue
 
         count += 1
+
         if count % PROGRESS_STEP == 0:
             asyncio.run_coroutine_threadsafe(
                 edit_progress(
                     context.bot,
                     update.effective_chat.id,
-                    message.message_id,
-                    small_caps(f"scanning… {count} pages"),
+                    query.message.message_id,
+                    f"🔍 Scanning… {count} pages done",
                 ),
                 loop,
             )
 
-    asyncio.run_coroutine_threadsafe(store_results(context, results), loop)
+    asyncio.run_coroutine_threadsafe(
+        store_results(context, results),
+        loop,
+    )
 
     asyncio.run_coroutine_threadsafe(
         edit_progress(
             context.bot,
             update.effective_chat.id,
-            message.message_id,
-            small_caps(f"scan completed\npages scanned: {len(results)}"),
-        ),
-        loop,
-    )
-
-    text_report = generate_text_report(results)
-    asyncio.run_coroutine_threadsafe(
-        context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=text_report,
+            query.message.message_id,
+            f"✅ Scan complete\n📄 Pages scanned: {len(results)}",
         ),
         loop,
     )
 
 
-# ============== PDF ==============
 def make_pdf(results, user_id):
-    name = f"vuln_report_{user_id}.pdf"
+    filename = f"report_{user_id}.pdf"
+
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "Website Vulnerability Report", ln=True)
-    pdf.ln(5)
+    pdf.cell(0, 10, "Website Security Audit Report", ln=True)
+    pdf.ln(6)
 
-    pdf.set_font("Arial", size=9)
+    pdf.set_font("Arial", "B", 9)
+    headers = ["URL", "Status", "HTTPS", "Hdrs", "Login/Admin", "Risk"]
+    widths = [70, 15, 12, 15, 30, 15]
+
+    for h, w in zip(headers, widths):
+        pdf.cell(w, 7, h, border=1)
+    pdf.ln()
+
+    pdf.set_font("Arial", size=8)
+
     for r in results:
-        pdf.multi_cell(
-            0, 6,
-            pdf_safe(
-                f"""
-URL: {r['url']}
-Risk: {r['risk'].upper()}
-Missing headers: {', '.join(r['missing_headers']) or 'none'}
-Cookie issues: {', '.join(r['cookie_issues']) or 'none'}
-Suspicious params: {', '.join(r['params']) or 'none'}
-Insecure forms: {r['insecure_forms']}
-JS exposure signs: {r['js_secrets']}
-------------------------------
-"""
-            ),
-        )
+        headers_score = sum(r["headers"].values())
+        risk = "LOW"
+        if not r["https"] or r["admin"]:
+            risk = "MEDIUM"
+        if r["status"] >= 400:
+            risk = "HIGH"
 
-    pdf.output(name)
-    return name
+        row = [
+            pdf_safe(r["url"]),
+            str(r["status"]),
+            "YES" if r["https"] else "NO",
+            f"{headers_score}/3",
+            "YES" if (r["login"] or r["admin"]) else "NO",
+            risk,
+        ]
+
+        for item, w in zip(row, widths):
+            pdf.cell(w, 6, item, border=1)
+        pdf.ln()
+
+    pdf.output(filename)
+    return filename
 
 
-# ============== TELEGRAM COMMANDS ==============
+# ============== TELEGRAM ==============
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kb = [
-        [InlineKeyboardButton("🔍 start scan", callback_data="scan")],
-        [InlineKeyboardButton("📄 generate pdf", callback_data="pdf")],
+        [InlineKeyboardButton("🎯 Set Target", callback_data="info")],
+        [InlineKeyboardButton("🔍 Start Scan", callback_data="scan")],
+        [InlineKeyboardButton("📄 Generate PDF", callback_data="pdf")],
     ]
     await update.message.reply_text(
-        "🛡 advanced vulnerability scanner\n\n"
-        "/vlscan <url>\n"
-        "/vlpdf",
+        "🛡 Advanced Website Scanner Bot\n\n"
+        "⚠ Scan only websites you own or have permission for.",
         reply_markup=InlineKeyboardMarkup(kb),
     )
 
 
-async def vlscan(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def set_target(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text(
-            small_caps("usage:\n/vlscan https://example.com")
-        )
+        await update.message.reply_text("Usage:\n/target https://example.com")
         return
 
-    target = context.args[0].rstrip("/")
     context.user_data.clear()
-    context.user_data["target"] = target
+    context.user_data["target"] = context.args[0].rstrip("/")
     context.user_data["results_ready"] = False
-
-    msg = await update.message.reply_text(
-        small_caps("initializing deep scan…")
-    )
-
-    update._scan_message = msg
-    loop = asyncio.get_running_loop()
-
-    threading.Thread(
-        target=run_scan,
-        args=(update, context, loop),
-        daemon=True,
-    ).start()
-
-
-async def vlpdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.user_data.get("results_ready"):
-        await update.message.reply_text(
-            small_caps("no scan data available")
-        )
-        return
-
-    file = make_pdf(
-        context.user_data["results"],
-        update.effective_user.id,
-    )
-
-    with open(file, "rb") as f:
-        await update.message.reply_document(f)
-
-    os.remove(file)
+    await update.message.reply_text(f"🎯 Target set:\n{context.args[0]}")
 
 
 async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -334,14 +225,12 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if q.data == "scan":
         if "target" not in context.user_data:
-            await q.edit_message_text(
-                small_caps("use /vlscan <url> first")
-            )
+            await q.edit_message_text("❌ Set target first using /target")
             return
 
-        q.message.edit_text(small_caps("starting scan…"))
-        update._scan_message = q.message
-        loop = asyncio.get_running_loop()
+        await q.edit_message_text("🔍 Scanning started…")
+
+        loop = asyncio.get_running_loop()  # ✅ REAL LOOP
 
         threading.Thread(
             target=run_scan,
@@ -351,26 +240,25 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif q.data == "pdf":
         if not context.user_data.get("results_ready"):
-            await q.edit_message_text(
-                small_caps("scan not completed yet")
-            )
+            await q.edit_message_text("❌ Scan not completed yet")
             return
 
-        file = make_pdf(
-            context.user_data["results"],
-            update.effective_user.id,
-        )
+        results = context.user_data.get("results", [])
+        if not results:
+            await q.edit_message_text("❌ No pages were successfully scanned.")
+            return
 
-        with open(file, "rb") as f:
-            await q.message.reply_document(f)
+        filename = make_pdf(results, update.effective_user.id)
 
-        os.remove(file)
+        with open(filename, "rb") as doc:
+            await q.message.reply_document(doc)
+
+        os.remove(filename)
 
 
 # ============== RUN ==============
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("vlscan", vlscan))
-app.add_handler(CommandHandler("vlpdf", vlpdf))
+app.add_handler(CommandHandler("target", set_target))
 app.add_handler(CallbackQueryHandler(buttons))
 app.run_polling()
