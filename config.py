@@ -96,7 +96,7 @@ autoclean = []
 confirmer = {}
 
 
-START_VIDEO_URL = getenv("START_VIDEO_URL", "https://files.catbox.moe/m8npjm.mp4")
+START_VIDEO_URL = getenv("START_VIDEO_URL", "https://files.catbox.moe/ys1wfm.mp4")
 PING_IMG_URL = getenv("PING_IMG_URL", "https://files.catbox.moe/0ehtgk.jpg")
 PLAYLIST_IMG_URL = "https://files.catbox.moe/2m6yep.jpg"
 STATS_IMG_URL = "https://files.catbox.moe/0ehtgk.jpg"
