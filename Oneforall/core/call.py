@@ -1,38 +1,41 @@
-#
-# Copyright (C) 2021-2022 by TheAloneteam@Github, < https://github.com/TheAloneTeam >.
-# This file is part of < https://github.com/TheAloneTeam/AloneMusic > project,
-# and is released under the "GNU v3.0 License Agreement".
-# Please see < https://github.com/TheAloneTeam/AloneMusic/blob/master/LICENSE >
-#
-# All rights reserved.
 import asyncio
 import os
 from datetime import datetime, timedelta
 from typing import Union
 
-from ntgcalls import ConnectionNotFound, TelegramServerError
+from ntgcalls import TelegramServerError
 from pyrogram import Client
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from pytgcalls import PyTgCalls, exceptions, types
-from pytgcalls.pytgcalls_session import PyTgCallsSession
+from pyrogram.types import InlineKeyboardMarkup
+from pytgcalls import PyTgCalls
+from pytgcalls.exceptions import AlreadyJoinedError, NoActiveGroupCall
+from pytgcalls.types import AudioQuality, MediaStream, Update, VideoQuality
+from pytgcalls.types.stream import StreamAudioEnded
 
 import config
-from AloneMusic import LOGGER, YouTube, app
-from AloneMusic.misc import db
-from AloneMusic.utils.database import (add_active_chat, add_active_video_chat,
-                                       get_lang, get_loop, group_assistant,
-                                       is_autoend, music_on,
-                                       remove_active_chat,
-                                       remove_active_video_chat, set_loop)
-from AloneMusic.utils.errors import capture_internal_err
-from AloneMusic.utils.exceptions import AssistantErr
-from AloneMusic.utils.formatters import (check_duration, seconds_to_min,
-                                         speed_converter)
-from AloneMusic.utils.inline.play import stream_markup
-from AloneMusic.utils.stream.autoclear import auto_clean
-from AloneMusic.utils.thumbnails import get_thumb
+from Oneforall import LOGGER, YouTube, app
+from Oneforall.misc import db
+from Oneforall.utils.database import (
+    add_active_chat,
+    add_active_video_chat,
+    get_lang,
+    get_loop,
+    group_assistant,
+    is_autoend,
+    music_on,
+    remove_active_chat,
+    remove_active_video_chat,
+    set_loop,
+)
+from Oneforall.utils.exceptions import AssistantErr
+from Oneforall.utils.formatters import check_duration, seconds_to_min, speed_converter
+from Oneforall.utils.inline.play import stream_markup, stream_markup2
+from Oneforall.utils.stream.autoclear import auto_clean
+from Oneforall.utils.thumbnails import get_thumb
 from strings import get_string
 
+autoend = {}
+counter = {}
+loop = asyncio.get_event_loop_policy().get_event_loop()
 
 async def delete_old_message(chat_id: int):
     try:
