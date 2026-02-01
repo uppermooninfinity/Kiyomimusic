@@ -1,44 +1,36 @@
-print("vl loaded")  # -*- coding: utf-8 -*-
-import os
 from pyrogram import Client, filters
 from pyrogram.types import Message
+import os
 
 from Oneforall.utils.formatter import format_scan_report
 from Oneforall.utils.pdf_report import generate_pdf_report
 from Oneforall.utils.scanner_core import scan_website
 
 
-@Client.on_message(
-    filters.command("vlscan") & (filters.private | filters.group | filters.channel)
-)
+@Client.on_message(filters.command(["vlscan"], prefixes="/") & (filters.private | filters.group))
 async def vlscan_handler(client: Client, message: Message):
     """
     Command: /vlscan <website>
-    Passive vulnerability scan with PDF + text report
-    Works in groups, DMs, and channels
+    Works in private chats and groups (with or without bot mention)
     """
 
-    # --- Check for target argument ---
+    # Make sure command has argument
     if len(message.command) < 2:
         return await message.reply_text(
             "Usage:\n/vlscan <website>\nExample: /vlscan example.com"
         )
 
     target = message.command[1]
+    status_msg = await message.reply_text(f"🔍 Starting scan for {target}...")
 
-    # --- Status message ---
-    status_msg = await message.reply_text(
-        f"🔍 Starting passive vulnerability scan for {target}..."
-    )
-
-    # --- Run scan (can be slow, consider threading if needed) ---
     try:
+        # Run the scan
         result = scan_website(target)
     except Exception as e:
         await status_msg.edit(f"❌ Scan failed: {e}")
         return
 
-    # --- Generate text report ---
+    # Generate textual report
     text_report = format_scan_report(
         domain=result["domain"],
         risk_level=result["risk"],
@@ -47,7 +39,7 @@ async def vlscan_handler(client: Client, message: Message):
         recommendations=result["recommendations"],
     )
 
-    # --- Generate PDF report ---
+    # Generate PDF report
     pdf_path = f"/tmp/vlscan_{result['domain'].replace('.', '_')}.pdf"
     generate_pdf_report(
         file_path=pdf_path,
@@ -58,20 +50,14 @@ async def vlscan_handler(client: Client, message: Message):
         recommendations=result["recommendations"],
     )
 
-    # --- Send reports ---
+    # Send textual report
     await status_msg.edit(f"✅ Scan complete! Sending reports for {target}...")
+    await message.reply_text(f"```\n{text_report}\n```", disable_web_page_preview=True)
 
-    await message.reply_text(
-        f"```\n{text_report}\n```",
-        disable_web_page_preview=True,
-    )
+    # Send PDF
+    await message.reply_document(pdf_path, caption="📄 Vulnerability Scan Report (PDF)")
 
-    await message.reply_document(
-        pdf_path,
-        caption="📄 Vulnerability Scan Report (PDF)",
-    )
-
-    # --- Clean up temp file ---
+    # Cleanup
     if os.path.exists(pdf_path):
         os.remove(pdf_path)
 
