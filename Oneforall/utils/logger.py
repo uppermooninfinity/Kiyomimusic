@@ -7,7 +7,7 @@ from Oneforall.utils.database import is_on_off
 
 async def play_logs(message, streamtype):
     if await is_on_off(2):
-        logger_text = f"""
+        logger_text = f"""<blockquote>
 <b>{app.mention} ᴘʟᴀʏ ʟᴏɢ</b>
 
 <b>ᴄʜᴀᴛ ɪᴅ :</b> <code>{message.chat.id}</code>
@@ -19,7 +19,7 @@ async def play_logs(message, streamtype):
 <b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}
 
 <b>ǫᴜᴇʀʏ :</b> {message.text.split(None, 1)[1]}
-<b>sᴛʀᴇᴀᴍᴛʏᴘᴇ :</b> {streamtype}"""
+<b>sᴛʀᴇᴀᴍᴛʏᴘᴇ :</b> {streamtype}</blockquote>"""
         if message.chat.id != LOGGER_ID:
             try:
                 await app.send_message(
