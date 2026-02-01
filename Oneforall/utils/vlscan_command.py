@@ -5,7 +5,7 @@ from pyrogram.types import Message
 
 from Oneforall.utils.formatter import format_scan_report
 from Oneforall.utils.pdf_report import generate_pdf_report
-from Oneforall.scanner.scanner_core import scan_website
+from Oneforall.utils.scanner_core import scan_website
 
 
 @Client.on_message(filters.command("vlscan"))
