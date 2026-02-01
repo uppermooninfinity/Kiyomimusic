@@ -1,145 +1,146 @@
 import os
-import random
 import re
-
-import aiofiles
 import aiohttp
+import aiofiles
+
 from PIL import (
     Image,
-    ImageEnhance,
-    ImageOps,
     ImageDraw,
     ImageFont,
     ImageFilter,
+    ImageEnhance
 )
 from youtubesearchpython.__future__ import VideosSearch
 
-from config import YOUTUBE_IMG_URL
+CACHE_DIR = "cache"
+BRAND_NAME = "Kiyomi Music"
 
 
-def changeImageSize(maxWidth, maxHeight, image):
-    return image.resize((maxWidth, maxHeight), Image.LANCZOS)
+def resize(img, size):
+    return img.resize(size, Image.LANCZOS)
 
 
-def clear(text):
-    words = text.split()
-    title = ""
-    for w in words:
-        if len(title) + len(w) < 60:
-            title += " " + w
-    return title.strip()
+def clean_title(text, limit=58):
+    text = re.sub(r"\s+", " ", re.sub(r"[^\w\s]", "", text))
+    out = ""
+    for w in text.split():
+        if len(out) + len(w) <= limit:
+            out += " " + w
+    return out.strip()
 
 
-async def get_thumb(videoid):
-    final = f"cache/{videoid}.png"
-    temp = f"cache/thumb{videoid}.png"
+async def get_thumb(videoid: str):
+    final = f"{CACHE_DIR}/{videoid}.png"
+    temp = f"{CACHE_DIR}/raw_{videoid}.jpg"
 
-    if os.path.isfile(final):
+    if os.path.exists(final):
         return final
+
+    os.makedirs(CACHE_DIR, exist_ok=True)
 
     try:
         search = VideosSearch(
             f"https://www.youtube.com/watch?v={videoid}", limit=1
         )
-        result = (await search.next())["result"][0]
+        data = (await search.next())["result"][0]
 
-        title = clear(
-            re.sub(r"\W+", " ", result.get("title", "Unsupported Title")).title()
-        )
-        duration = result.get("duration", "LIVE")
-        channel = result.get("channel", {}).get("name", "Unknown Channel")
-        thumbnail = result["thumbnails"][-1]["url"].split("?")[0]
+        title = clean_title(data.get("title", "Unknown Title"))
+        channel = data.get("channel", {}).get("name", "Unknown Channel")
+        duration = data.get("duration", "LIVE")
+        thumb_url = data["thumbnails"][-1]["url"].split("?")[0]
 
         # download thumbnail
         async with aiohttp.ClientSession() as session:
-            async with session.get(thumbnail) as resp:
+            async with session.get(thumb_url) as resp:
                 if resp.status == 200:
                     async with aiofiles.open(temp, "wb") as f:
                         await f.write(await resp.read())
 
         base = Image.open(temp).convert("RGB")
 
-        # ===== BACKGROUND =====
-        bg = changeImageSize(1280, 720, base)
-        bg = bg.filter(ImageFilter.GaussianBlur(22))
-        bg = ImageEnhance.Brightness(bg).enhance(0.55)
+        # ================= BACKGROUND =================
+        bg = resize(base, (1280, 720))
+        bg = bg.filter(ImageFilter.GaussianBlur(30))
+        bg = ImageEnhance.Brightness(bg).enhance(0.45)
+        bg = ImageEnhance.Contrast(bg).enhance(1.1)
 
-        overlay = Image.new("RGBA", bg.size, (0, 0, 0, 170))
+        overlay = Image.new("RGBA", bg.size, (0, 0, 0, 160))
         bg = Image.alpha_composite(bg.convert("RGBA"), overlay)
 
-        # ===== FOREGROUND CARD =====
-        fg = changeImageSize(720, 405, base)
-        fg = ImageEnhance.Sharpness(fg).enhance(1.4)
+        # ================= FOREGROUND CARD =================
+        card_img = resize(base, (760, 430))
+        card_img = ImageEnhance.Sharpness(card_img).enhance(1.6)
 
-        mask = Image.new("L", fg.size, 0)
-        mdraw = ImageDraw.Draw(mask)
-        mdraw.rounded_rectangle(
-            [(0, 0), fg.size], radius=30, fill=255
+        radius = 34
+        mask = Image.new("L", card_img.size, 0)
+        d = ImageDraw.Draw(mask)
+        d.rounded_rectangle(
+            [(0, 0), card_img.size], radius=radius, fill=255
         )
 
-        card = Image.new("RGBA", fg.size)
-        card.paste(fg, (0, 0), mask)
+        card = Image.new("RGBA", card_img.size)
+        card.paste(card_img, (0, 0), mask)
 
-        shadow = Image.new("RGBA", fg.size, (0, 0, 0, 180))
-        shadow = shadow.filter(ImageFilter.GaussianBlur(25))
+        shadow = Image.new("RGBA", card_img.size, (0, 0, 0, 200))
+        shadow = shadow.filter(ImageFilter.GaussianBlur(28))
 
-        cx = (1280 - fg.width) // 2
-        cy = 100
+        cx = (1280 - card_img.width) // 2
+        cy = 95
 
-        bg.paste(shadow, (cx + 12, cy + 18), shadow)
+        bg.paste(shadow, (cx + 16, cy + 20), shadow)
         bg.paste(card, (cx, cy), card)
 
         draw = ImageDraw.Draw(bg)
 
-        # ===== PROGRESS BAR =====
-        bar_y = cy + fg.height - 12
+        # ================= PROGRESS BAR =================
+        bar_y = cy + card_img.height - 16
         draw.line(
-            [(cx + 40, bar_y), (cx + 240, bar_y)],
-            fill=(255, 60, 150),
-            width=6,
+            [(cx + 60, bar_y), (cx + 300, bar_y)],
+            fill=(255, 255, 255),
+            width=5
         )
 
-        # ===== TEXT =====
+        # ================= FONTS =================
         try:
-            title_font = ImageFont.truetype("Tune/assets/font.ttf", 42)
-            small_font = ImageFont.truetype("Tune/assets/font2.ttf", 28)
+            title_font = ImageFont.truetype("Oneforall/assets/font.ttf", 44)
+            meta_font = ImageFont.truetype("Oneforall/assets/font2.ttf", 26)
         except:
-            title_font = small_font = ImageFont.load_default()
+            title_font = meta_font = ImageFont.load_default()
 
+        # ================= TEXT =================
         draw.text(
-            (cx, cy + fg.height + 40),
+            (cx, cy + card_img.height + 38),
             title,
             font=title_font,
-            fill="white",
+            fill="white"
         )
 
         draw.text(
-            (cx, cy + fg.height + 95),
-            f"{channel} • {duration}",
-            font=small_font,
-            fill=(190, 190, 190),
+            (cx, cy + card_img.height + 92),
+            f"{channel}  •  {duration}",
+            font=meta_font,
+            fill=(200, 200, 200)
         )
 
-        # ===== POWERED BY =====
-        power = "˹ ROSHNI MUSIC "
-        pw = draw.textlength(power, small_font)
-        px = (1280 - pw) // 2
-
+        # ================= BRAND =================
+        brand_font = meta_font
+        bw = draw.textlength(BRAND_NAME, brand_font)
         draw.text(
-            (px, 650),
-            power,
-            font=small_font,
-            fill=(255, 80, 170),
+            (1280 - bw - 40, 650),
+            BRAND_NAME,
+            font=brand_font,
+            fill=(255, 210, 235)
         )
+
+        bg.convert("RGB").save(final, "PNG", quality=95)
 
         try:
             os.remove(temp)
         except:
             pass
 
-        bg.convert("RGB").save(final, "PNG", quality=95)
         return final
 
     except Exception as e:
         print("THUMB ERROR:", e)
-        return YOUTUBE_IMG_URL
+        return None
