@@ -19,6 +19,10 @@ def track_markup(_, videoid, user_id, channel, fplay):
             ),
         ],
         [
+            InlineKeyboardButton("📥ᴘʀᴏᴍᴏ📥", url="https://t.me/snowy_hometown"),
+            InlineKeyboardButton("💗ɢʀᴏᴜᴘ ᴄʜᴀᴛ💗", url="https://t.me/destiny_infinity_og"),
+        ],
+        [
             InlineKeyboardButton(
                 text=_["CLOSE_BUTTON"],
                 callback_data=f"forceclose {videoid}|{user_id}",
