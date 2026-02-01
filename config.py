@@ -8,8 +8,8 @@ from pyrogram import filters
 load_dotenv()
 
 # Get this value from my.telegram.org/apps
-API_ID = int(getenv("API_ID", "23450648"))
-API_HASH = getenv("API_HASH", "177973c53d36a5db484cabfce1b9bf2f")
+API_ID = int(getenv("API_ID", "34594672"))
+API_HASH = getenv("API_HASH", "a008e5018b8662e872be5a8670db4840")
 
 # Get your token from @BotFather on Telegram.
 BOT_TOKEN = getenv("BOT_TOKEN","")
@@ -20,7 +20,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Get your mongo url from cloud.mongodb.com
 MONGO_DB_URI = getenv("MONGO_DB_URI", "mongodb+srv://knight4563:knight4563@cluster0.a5br0se.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-MUSIC_BOT_NAME = getenv("MUSIC_BOT_NAME", "SNOWY_MUSIC")
+MUSIC_BOT_NAME = getenv("MUSIC_BOT_NAME", "KIYOMI MMUSIC ")
 PRIVATE_BOT_MODE = getenv("PRIVATE_BOT_MODE", None)
 
 DURATION_LIMIT_MIN = int(getenv("DURATION_LIMIT", 100000))
