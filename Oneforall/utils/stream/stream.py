@@ -20,7 +20,7 @@ SPAM_WINDOW_SECONDS = 5
 
 from pyrogram.types import InlineKeyboardMarkup
 from youtubesearchpython.__future__ import VideosSearch
-from Oneforall.plugins.play.autoplay import auto_next
+
 
 import config
 from Oneforall import Carbon, YouTube, app
