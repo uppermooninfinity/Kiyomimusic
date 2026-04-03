@@ -1,4 +1,3 @@
-
 import os
 from random import randint
 from typing import Union
@@ -21,12 +20,11 @@ SPAM_WINDOW_SECONDS = 5
 from pyrogram.types import InlineKeyboardMarkup
 from youtubesearchpython.__future__ import VideosSearch
 
-
 import config
 from Oneforall import Carbon, YouTube, app
 from Oneforall.core.call import Hotty
 from Oneforall.misc import db
-from Oneforall.utils.database import add_active_video_chat, get_autoplay, is_active_chat
+from Oneforall.utils.database import add_active_video_chat, is_active_chat
 from Oneforall.utils.exceptions import AssistantErr
 from Oneforall.utils.inline import (
     aq_markup,
@@ -102,7 +100,7 @@ async def stream(
                     )
                 except:
                     await mystic.edit_text(_["play_3"])
-                await Hotty.play(
+                await Hotty.join_call(
                     chat_id,
                     original_chat_id,
                     file_path,
@@ -122,8 +120,7 @@ async def stream(
                     forceplay=forceplay,
                 )
                 img = await get_thumb(vidid)
-                autoplay = await get_autoplay(chat_id)
-                button = stream_markup(_, vidid, chat_id, autoplay)
+                button = stream_markup(_, vidid, chat_id)
                 run = await app.send_photo(
                     original_chat_id,
                     photo=img,
@@ -194,7 +191,7 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.play(
+            await Hotty.join_call(
                 chat_id,
                 original_chat_id,
                 file_path,
@@ -214,8 +211,7 @@ async def stream(
                 forceplay=forceplay,
             )
             img = await get_thumb(vidid)
-            autoplay = await get_autoplay(chat_id)
-            button = stream_markup(_, vidid, chat_id, autoplay)
+            button = stream_markup(_, vidid, chat_id)
             run = await app.send_photo(
                 original_chat_id,
                 photo=img,
@@ -256,7 +252,7 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.play(chat_id, original_chat_id, file_path, video=None)
+            await Hotty.join_call(chat_id, original_chat_id, file_path, video=None)
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -269,10 +265,7 @@ async def stream(
                 "audio",
                 forceplay=forceplay,
             )
-            autoplay = await get_autoplay(chat_id)
-            button = stream_markup2(_, chat_id, autoplay)
-            autoplay = await get_autoplay(chat_id)
-            button = stream_markup2(_, chat_id, autoplay)
+            button = stream_markup2(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
                 photo=config.SOUNCLOUD_IMG_URL,
@@ -311,7 +304,7 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.play(chat_id, original_chat_id, file_path, video=status)
+            await Hotty.join_call(chat_id, original_chat_id, file_path, video=status)
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -326,8 +319,7 @@ async def stream(
             )
             if video:
                 await add_active_video_chat(chat_id)
-            autoplay = await get_autoplay(chat_id)
-            button = stream_markup2(_, chat_id, autoplay)
+            button = stream_markup2(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
                 photo=config.TELEGRAM_VIDEO_URL if video else config.TELEGRAM_AUDIO_URL,
@@ -368,7 +360,7 @@ async def stream(
             n, file_path = await YouTube.video(link)
             if n == 0:
                 raise AssistantErr(_["str_3"])
-            await Hotty.play(
+            await Hotty.join_call(
                 chat_id,
                 original_chat_id,
                 file_path,
@@ -388,10 +380,7 @@ async def stream(
                 forceplay=forceplay,
             )
             img = await get_thumb(vidid)
-            autoplay = await get_autoplay(chat_id)
-            button = stream_markup2(_, chat_id, autoplay)
-            autoplay = await get_autoplay(chat_id)
-            button = stream_markup2(_, chat_id, autoplay)
+            button = stream_markup2(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
                 photo=img,
@@ -429,7 +418,7 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.play(
+            await Hotty.join_call(
                 chat_id,
                 original_chat_id,
                 link,
@@ -446,8 +435,7 @@ async def stream(
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
-            autoplay = await get_autoplay(chat_id)
-            button = stream_markup2(_, chat_id, autoplay)
+            button = stream_markup2(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
                 photo=config.STREAM_IMG_URL,
@@ -457,4 +445,5 @@ async def stream(
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
             await mystic.delete()
-                    
+
+#chutiya code remove krke new code fixed dal diya
