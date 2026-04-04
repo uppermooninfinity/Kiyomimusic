@@ -4,7 +4,6 @@ from pyrogram import filters
 from pyrogram.enums import ChatAction
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from Oneforall import app
-from config import GROQ_API_KEY
 from groq import Groq
 
 # Initialize Groq client
