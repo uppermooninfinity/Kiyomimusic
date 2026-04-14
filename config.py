@@ -95,8 +95,8 @@ votemode = {}
 autoclean = []
 confirmer = {}
 
-
-START_VIDEO_URL = getenv("START_VIDEO_URL", "https://files.catbox.moe/ys1wfm.mp4")
+START_IMG_URL = getenv("START_IMG_URL", "https://graph.org/file/d101f6b200d0fbf530e0d-fb8b944e24c2e63d89.jpg")
+START_VIDEO_URL = getenv("START_VIDEO_URL", "https://files.catbox.moe/ty42li.mp4")
 PING_IMG_URL = getenv("PING_IMG_URL", "https://files.catbox.moe/0ehtgk.jpg")
 PLAYLIST_IMG_URL = "https://files.catbox.moe/2m6yep.jpg"
 STATS_IMG_URL = "https://files.catbox.moe/0ehtgk.jpg"
