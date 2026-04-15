@@ -2,7 +2,6 @@ import platform
 import asyncio
 from sys import version as pyver
 from io import BytesIO
-import time
 
 import psutil
 import matplotlib.pyplot as plt
@@ -39,9 +38,9 @@ async def generate_cpu_graph():
 
     plt.figure()
     plt.plot(usage)
-    plt.title("CPU Usage (%) - Live")
+    plt.title("CPU Usage (%)")
     plt.xlabel("Time")
-    plt.ylabel("Usage %")
+    plt.ylabel("Usage")
 
     buffer = BytesIO()
     plt.savefig(buffer, format="png")
@@ -79,7 +78,6 @@ async def overall_stats(client, query: CallbackQuery, _):
     await query.answer()
 
     upl = back_stats_buttons(_)
-    await query.edit_message_text(_["gstats_1"].format(app.mention))
 
     served_chats, served_users, total_queries = await asyncio.gather(
         get_served_chats(),
@@ -100,16 +98,13 @@ async def overall_stats(client, query: CallbackQuery, _):
         config.DURATION_LIMIT_MIN,
     )
 
-    media = InputMediaPhoto(media=config.STATS_IMG_URL, caption=text)
+    graph = await generate_cpu_graph()
 
-    try:
-        await query.edit_message_media(media=media, reply_markup=upl)
-    except MessageIdInvalid:
-        await query.message.reply_photo(
-            photo=config.STATS_IMG_URL,
-            caption=text,
-            reply_markup=upl,
-        )
+    await query.message.reply_photo(
+        photo=graph,
+        caption=text,
+        reply_markup=upl,
+    )
 
 
 @app.on_callback_query(filters.regex("bot_stats_sudo") & ~BANNED_USERS)
@@ -120,8 +115,6 @@ async def bot_stats(client, query: CallbackQuery, _):
 
     await query.answer()
     upl = back_stats_buttons(_)
-
-    await query.edit_message_text(_["gstats_1"].format(app.mention))
 
     tasks = await asyncio.gather(
         get_served_chats(),
@@ -188,11 +181,8 @@ async def bot_stats(client, query: CallbackQuery, _):
 
     graph = await generate_cpu_graph()
 
-    try:
-        await query.message.reply_photo(
-            photo=graph,
-            caption=text,
-            reply_markup=upl,
-        )
-    except MessageIdInvalid:
-        pass
+    await query.message.reply_photo(
+        photo=graph,
+        caption=text,
+        reply_markup=upl,
+    )
