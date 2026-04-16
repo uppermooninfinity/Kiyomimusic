@@ -1,24 +1,21 @@
 import random
 import asyncio
 import aiohttp
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from pyrogram import filters
 from pyrogram.types import Message
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from Oneforall import app
-from config import MONGO_DB_URI, OWNER_ID
-from Oneforall.misc import SUDOERS
+from config import MONGO_DB_URI
 
 mongo = AsyncIOMotorClient(MONGO_DB_URI)
 db = mongo["guessgame"]
 
 users_db = db["users"]
-stats_db = db["stats"]
+group_db = db["groups"]
 
-STORAGE_CHANNEL = -1003795390770
-
-ROUND_INTERVAL = 900  # 15 min
+ROUND_INTERVAL = 900
 
 ACTIVE = {}
 RUNNING_CHATS = set()
@@ -29,9 +26,9 @@ REACTIONS = [
     "💖","💕","💌","💟","♥️","❣️","❤️‍🩹","❤️‍🔥","🧠"
 ]
 
-# ---------------- WORD SYSTEM ---------------- #
+# ---------------- WORD ---------------- #
 
-async def get_api_word():
+async def get_word():
     try:
         async with aiohttp.ClientSession() as s:
             async with s.get("https://random-word-api.herokuapp.com/word") as r:
@@ -39,53 +36,54 @@ async def get_api_word():
     except:
         return random.choice(["apple","tiger","dragon","piano"])
 
-async def get_storage_word(client):
-    try:
-        words = []
-        async for m in client.get_chat_history(STORAGE_CHANNEL, limit=50):
-            if m.caption and m.caption.startswith("WORD:"):
-                words.append(m.caption.split("WORD:")[1].strip())
-        if words:
-            return random.choice(words)
-    except:
-        pass
-    return None
-
-def make_gradient():
-    img = Image.new("RGB", (600,300), "#1e1e2f")
-    draw = ImageDraw.Draw(img)
-    for i in range(300):
-        color = (30+i//3, 30+i//4, 80+i//2)
-        draw.line((0,i,600,i), fill=color)
-    return img
+# ---------------- UI ---------------- #
 
 def mask_word(word):
     reveal = max(1, len(word)//3)
     idx = random.sample(range(len(word)), reveal)
-    return " ".join([c if i in idx else "_" for i, c in enumerate(word)])
+    return "  ".join([c if i in idx else "_" for i, c in enumerate(word)])
 
 def draw_word(word):
-    img = make_gradient()
-    draw = ImageDraw.Draw(img)
+    base = Image.new("RGB", (600, 350), "#0f172a")
+
+    blur = Image.new("RGB", (600, 350), "#1e293b")
+    blur = blur.filter(ImageFilter.GaussianBlur(20))
+    base.paste(blur, (0, 0))
+
+    overlay = Image.new("RGBA", base.size, (255,255,255,0))
+    draw = ImageDraw.Draw(overlay)
+
+    draw.rounded_rectangle((50, 80, 550, 280), radius=40, fill=(255,255,255,40))
+
+    base = Image.alpha_composite(base.convert("RGBA"), overlay)
+
+    draw = ImageDraw.Draw(base)
 
     try:
-        font = ImageFont.truetype("arial.ttf", 60)
+        font = ImageFont.truetype("Oneforall/assets/Poppins-Bold.ttf", 70)
     except:
         font = ImageFont.load_default()
 
-    draw.text((80,120), mask_word(word), fill="white", font=font)
+    text = mask_word(word)
+
+    bbox = draw.textbbox((0,0), text, font=font)
+    w = bbox[2]-bbox[0]
+    h = bbox[3]-bbox[1]
+
+    x = (600 - w)//2
+    y = (350 - h)//2
+
+    draw.text((x+2,y+2), text, fill=(0,0,0,120), font=font)
+    draw.text((x,y), text, fill="white", font=font)
 
     path = f"/tmp/{word}.png"
-    img.save(path)
+    base.save(path)
     return path
 
-# ---------------- GAME LOOP ---------------- #
+# ---------------- GAME ---------------- #
 
 async def send_round(client, chat_id):
-    word = await get_storage_word(client)
-    if not word:
-        word = await get_api_word()
-
+    word = await get_word()
     ACTIVE[chat_id] = word
 
     img = draw_word(word)
@@ -109,28 +107,24 @@ async def game_loop(client, chat_id):
 
 @app.on_message(filters.group, group=1)
 async def auto_start(client, message: Message):
-    chat_id = message.chat.id
+    cid = message.chat.id
 
-    if chat_id in RUNNING_CHATS:
-        return
-
-    RUNNING_CHATS.add(chat_id)
-    asyncio.create_task(game_loop(client, chat_id))
+    if cid not in RUNNING_CHATS:
+        RUNNING_CHATS.add(cid)
+        asyncio.create_task(game_loop(client, cid))
 
 # ---------------- ANSWER ---------------- #
 
 @app.on_message(filters.text & filters.group, group=2)
 async def answer(client, message: Message):
 
-    chat_id = message.chat.id
+    cid = message.chat.id
 
-    if chat_id not in ACTIVE:
+    if cid not in ACTIVE:
         return
 
-    word = ACTIVE[chat_id]
-
-    if message.text.lower() == word.lower():
-        ACTIVE.pop(chat_id)
+    if message.text.lower() == ACTIVE[cid]:
+        ACTIVE.pop(cid)
 
         try:
             await message.react(random.choice(REACTIONS))
@@ -151,93 +145,60 @@ async def answer(client, message: Message):
             f"🏆 ᴄᴏʀʀᴇᴄᴛ\n👤 {message.from_user.mention}\n💰 +10\n🪙 {coins}"
         )
 
-# ---------------- MESSAGE TRACKING ---------------- #
+# ---------------- MESSAGE TRACK + MILESTONE ---------------- #
 
 @app.on_message(filters.group, group=3)
-async def track(client, message: Message):
+async def track_group(client, message: Message):
 
-    if not message.from_user:
-        return
-
-    uid = message.from_user.id
     cid = message.chat.id
 
-    await stats_db.update_one(
-        {"user_id": uid},
-        {
-            "$inc": {
-                "global": 1,
-                f"groups.{cid}.count": 1
-            },
-            "$set": {"name": message.from_user.first_name}
-        },
+    data = await group_db.find_one({"chat_id": cid})
+
+    count = 1
+    last_milestone = 0
+
+    if data:
+        count = data.get("count", 0) + 1
+        last_milestone = data.get("last_milestone", 0)
+
+    milestone = (count // 5000) * 5000
+
+    await group_db.update_one(
+        {"chat_id": cid},
+        {"$set": {"count": count, "last_milestone": last_milestone}},
         upsert=True
     )
 
-# ---------------- PROFILE ---------------- #
+    # trigger only once
+    if milestone > 0 and milestone > last_milestone:
+        await group_db.update_one(
+            {"chat_id": cid},
+            {"$set": {"last_milestone": milestone}}
+        )
 
-@app.on_message(filters.command("profile") & filters.group)
-async def profile(client, message: Message):
+        await message.reply(
+            f"🎉 ᴄᴏɴɢʀᴀᴛs\n💬 ɢʀᴏᴜᴘ ʀᴇᴀᴄʜᴇᴅ {milestone} ᴍᴇssᴀɢᴇs"
+        )
 
-    uid = message.from_user.id
-    cid = message.chat.id
+# ---------------- LEADERBOARD ---------------- #
 
-    user = await stats_db.find_one({"user_id": uid})
+LEADERBOARD_VIDEO = "https://graph.org/file/5a27e77b6bcec50ff4c73-a3af79edc5d50d6273.mp4"
 
-    if not user:
-        return await message.reply("📭 ɴᴏ ᴅᴀᴛᴀ")
+@app.on_message(filters.command("gametop") & filters.group)
+async def gametop(client, message: Message):
 
-    global_count = user.get("global", 0)
-    group_count = user.get("groups", {}).get(str(cid), {}).get("count", 0)
+    users = users_db.find().sort("coins", -1).limit(10)
 
-    global_rank = await stats_db.count_documents({"global": {"$gt": global_count}}) + 1
-    group_rank = await stats_db.count_documents({f"groups.{cid}.count": {"$gt": group_count}}) + 1
+    text = "🏆 ɢᴀᴍᴇ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ\n\n"
 
-    total_users = await stats_db.count_documents({})
-    total_group = await stats_db.count_documents({f"groups.{cid}": {"$exists": True}})
+    i = 1
+    async for u in users:
+        name = u.get("name", "user")
+        coins = u.get("coins", 0)
+        text += f"{i}. {name} — {coins} 🪙\n"
+        i += 1
 
-    if global_count < 100:
-        league = "🥉 ʙʀᴏɴᴢᴇ"
-        next_req = 100 - global_count
-    elif global_count < 500:
-        league = "🥈 sɪʟᴠᴇʀ"
-        next_req = 500 - global_count
-    elif global_count < 1000:
-        league = "🥇 ɢᴏʟᴅ"
-        next_req = 1000 - global_count
-    else:
-        league = "💎 ᴘʟᴀᴛɪɴᴜᴍ"
-        next_req = 0
-
-    await message.reply(
-        f"👤 ʏᴏᴜʀ ᴘʀᴏғɪʟᴇ\n\n"
-        f"• ʜᴇʀᴇ: {group_count}\n"
-        f"• ɢʟᴏʙᴀʟ: {global_count}\n\n"
-        f"• ʀᴀɴᴋ: {group_rank}/{total_group}\n"
-        f"• ɢʟᴏʙᴀʟ: {global_rank}/{total_users}\n\n"
-        f"{league}\n"
-        f"— {next_req} ᴛᴏ ɴᴇxᴛ"
-    )
-
-# ---------------- IMPORT ---------------- #
-
-@app.on_message(filters.command("import") & filters.group)
-async def import_word(client, message: Message):
-
-    if message.from_user.id not in SUDOERS and message.from_user.id != OWNER_ID:
-        return await message.reply("🚫 ɴᴏ ᴀᴄᴄᴇss")
-
-    if len(message.command) < 2:
-        return await message.reply("⚠️ /ɪᴍᴘᴏʀᴛ ᴡᴏʀᴅ")
-
-    word = message.command[1].lower()
-    img = draw_word(word)
-
-    await client.send_photo(
-        STORAGE_CHANNEL,
-        img,
-        caption=f"WORD:{word}",
-        has_spoiler=True
-    )
-
-    await message.reply(f"✅ ɪᴍᴘᴏʀᴛᴇᴅ `{word}`")
+    try:
+        await message.reply_video(LEADERBOARD_VIDEO caption=text)
+    except:
+        await message.reply(text)
