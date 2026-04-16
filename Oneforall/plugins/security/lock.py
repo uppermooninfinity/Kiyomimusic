@@ -1,7 +1,7 @@
 import re
 from pyrogram import filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
-from pyrogram.enums import ChatMemberStatus, ButtonStyle
+from pyrogram.types import Message
+from pyrogram.enums import ChatMemberStatus
 from pymongo import MongoClient
 
 from Oneforall import app
@@ -12,8 +12,6 @@ db = mongo["musicbot"]
 locks_db = db["locks"]
 
 LOCK_CACHE = {}
-
-PAGE_SIZE = 6
 
 LOCKS = {
     "all": "ʟᴏᴄᴋ ᴇᴠᴇʀʏᴛʜɪɴɢ",
@@ -63,8 +61,7 @@ LOCKS = {
     "zalgо": "ʙʟᴏᴄᴋ ᴢᴀʟɢᴏ"
 }
 
-LOCK_LIST = list(LOCKS.keys())
-
+# ---------------- ADMIN ---------------- #
 async def is_admin(client, chat_id, user_id):
     try:
         member = await client.get_chat_member(chat_id, user_id)
@@ -72,6 +69,8 @@ async def is_admin(client, chat_id, user_id):
     except:
         return False
 
+
+# ---------------- DB ---------------- #
 def get_locks(chat_id):
     if chat_id in LOCK_CACHE:
         return LOCK_CACHE[chat_id]
@@ -81,110 +80,96 @@ def get_locks(chat_id):
     LOCK_CACHE[chat_id] = locks
     return locks
 
+
 def save_locks(chat_id, locks):
     LOCK_CACHE[chat_id] = locks
     locks_db.update_one({"chat_id": chat_id}, {"$set": {"locks": locks}}, upsert=True)
 
-def toggle_lock(chat_id, lock):
-    locks = get_locks(chat_id)
 
-    if lock == "all":
-        locks = [] if "all" in locks else ["all"]
-        save_locks(chat_id, locks)
-        return "all" in locks
+# ---------------- COMMANDS ---------------- #
 
-    if "all" in locks:
-        locks.remove("all")
+@app.on_message(filters.command(["lock", "locktypes"]) & filters.group)
+async def locktypes(client, message: Message):
+    if not await is_admin(client, message.chat.id, message.from_user.id):
+        return await message.reply("Admins only")
 
-    if lock in locks:
-        locks.remove(lock)
-        save_locks(chat_id, locks)
-        return False
-    else:
-        locks.append(lock)
-        save_locks(chat_id, locks)
-        return True
+    text = "🔐 **Available Lock Types:**\n\n"
+    for key, val in LOCKS.items():
+        text += f"• `{key}` → {val}\n"
 
-def unlock_all(chat_id):
-    LOCK_CACHE[chat_id] = []
-    locks_db.delete_one({"chat_id": chat_id})
-
-def style(i):
-    return [ButtonStyle.PRIMARY, ButtonStyle.SUCCESS, ButtonStyle.DANGER][i % 3]
+    text += "\nUse:\n`/lock type`\n`/unlock type`"
+    await message.reply(text)
 
 
-def build_panel(chat_id, page=0):
-    locks = get_locks(chat_id)
-    total_pages = (len(LOCK_LIST) - 1) // PAGE_SIZE
+@app.on_message(filters.command("locks") & filters.group)
+async def current_locks(client, message: Message):
+    locks = get_locks(message.chat.id)
 
-    items = LOCK_LIST[page * PAGE_SIZE:(page + 1) * PAGE_SIZE]
+    if not locks:
+        return await message.reply("No locks enabled.")
 
-    buttons, row = [], []
+    text = "🔒 **Current Locks:**\n\n"
+    for l in locks:
+        text += f"• `{l}`\n"
 
-    for i, lock in enumerate(items, 1):
-        row.append(
-            InlineKeyboardButton(
-                f"{'🟢' if lock in locks else '🔴'} {lock}",
-                callback_data=f"toggle_{lock}_{page}",
-                style=style(i)
-            )
-        )
-        if i % 2 == 0:
-            buttons.append(row)
-            row = []
+    await message.reply(text)
 
-    if row:
-        buttons.append(row)
-
-    nav = []
-    if page > 0:
-        nav.append(InlineKeyboardButton("⏮ ʙᴀᴄᴋ", callback_data=f"page_{page-1}", style=ButtonStyle.DANGER))
-
-    if page < total_pages:
-        nav.append(InlineKeyboardButton("ɴᴇxᴛ ⏭", callback_data=f"page_{page+1}", style=ButtonStyle.PRIMARY))
-    else:
-        nav.append(InlineKeyboardButton("🔄 ғɪʀsᴛ", callback_data="page_0", style=ButtonStyle.SUCCESS))
-
-    if nav:
-        buttons.append(nav)
-
-    buttons.append([
-        InlineKeyboardButton("🚫 ᴜɴʟᴏᴄᴋ ᴀʟʟ", callback_data="unlock_all", style=ButtonStyle.SUCCESS)
-    ])
-
-    return InlineKeyboardMarkup(buttons)
 
 @app.on_message(filters.command("lock") & filters.group)
-async def lock_panel(client, message: Message):
+async def lock_cmd(client, message: Message):
+    if len(message.command) == 1:
+        return
+
     if not await is_admin(client, message.chat.id, message.from_user.id):
-        return await message.reply("ᴀᴅᴍɪɴs ᴏɴʟʏ")
+        return await message.reply("Admins only")
 
-    await message.reply("🔐 ʟᴏᴄᴋ ᴘᴀɴᴇʟ", reply_markup=build_panel(message.chat.id))
+    lock = message.command[1].lower()
 
-@app.on_callback_query()
-async def cb(client, query):
-    chat_id = query.message.chat.id
+    if lock not in LOCKS:
+        return await message.reply("Invalid lock type")
 
-    if not await is_admin(client, chat_id, query.from_user.id):
-        return await query.answer("ᴀᴅᴍɪɴs ᴏɴʟʏ", show_alert=True)
+    locks = get_locks(message.chat.id)
 
-    data = query.data
+    if lock in locks:
+        return await message.reply("Already locked")
 
-    if data == "unlock_all":
-        unlock_all(chat_id)
-        return await query.message.edit_reply_markup(build_panel(chat_id, 0))
+    if lock == "all":
+        locks = ["all"]
+    else:
+        if "all" in locks:
+            locks.remove("all")
+        locks.append(lock)
 
-    if data.startswith("page_"):
-        page = int(data.split("_")[1])
-        return await query.message.edit_reply_markup(build_panel(chat_id, page))
+    save_locks(message.chat.id, locks)
+    await message.reply(f"Locked `{lock}`")
 
-    if data.startswith("toggle_"):
-        _, lock, page = data.split("_")
-        toggle_lock(chat_id, lock)
-        return await query.message.edit_reply_markup(build_panel(chat_id, int(page)))
 
-    await query.answer()
+@app.on_message(filters.command("unlock") & filters.group)
+async def unlock_cmd(client, message: Message):
+    if len(message.command) == 1:
+        return
 
+    if not await is_admin(client, message.chat.id, message.from_user.id):
+        return await message.reply("Admins only")
+
+    lock = message.command[1].lower()
+
+    if lock == "all":
+        save_locks(message.chat.id, [])
+        return await message.reply("All locks removed")
+
+    locks = get_locks(message.chat.id)
+
+    if lock not in locks:
+        return await message.reply("Not locked")
+
+    locks.remove(lock)
+    save_locks(message.chat.id, locks)
+
+    await message.reply(f"Unlocked `{lock}`")
+
+
+# ---------------- ENFORCE ---------------- #
 @app.on_message(filters.group, group=1)
 async def enforce(client, message: Message):
 
@@ -202,12 +187,6 @@ async def enforce(client, message: Message):
         if "all" in locks:
             return await message.delete()
 
-        if "audio" in locks:
-            if message.audio or message.voice:
-                return await message.delete()
-            if message.document and message.document.mime_type and "audio" in message.document.mime_type:
-                return await message.delete()
-
         if "photo" in locks and message.photo:
             return await message.delete()
 
@@ -217,34 +196,16 @@ async def enforce(client, message: Message):
         if "gif" in locks and message.animation:
             return await message.delete()
 
-        if "document" in locks and message.document:
-            return await message.delete()
-
         if "sticker" in locks and message.sticker:
-            return await message.delete()
-
-        if "videonote" in locks and message.video_note:
             return await message.delete()
 
         if "voice" in locks and message.voice:
             return await message.delete()
 
-        if "contact" in locks and message.contact:
+        if "audio" in locks and message.audio:
             return await message.delete()
 
-        if "location" in locks and message.location:
-            return await message.delete()
-
-        if "poll" in locks and message.poll:
-            return await message.delete()
-
-        if "forward" in locks and message.forward_date:
-            return await message.delete()
-
-        if "inline" in locks and message.via_bot:
-            return await message.delete()
-
-        if "button" in locks and message.reply_markup:
+        if "document" in locks and message.document:
             return await message.delete()
 
         if "url" in locks and re.search(r"(https?://|www\.)", text):
@@ -255,6 +216,3 @@ async def enforce(client, message: Message):
 
     except:
         pass
-
-#file written by @itzarjuna01 © some errors spotted were fixed via ai 
-#any marks of ai should be considered as ai fixes 
