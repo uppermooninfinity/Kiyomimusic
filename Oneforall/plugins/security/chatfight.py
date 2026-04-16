@@ -7,13 +7,17 @@ from pyrogram.types import Message
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from Oneforall import app
-from config import MONGO_DB_URI
+from config import MONGO_DB_URI, OWNER_ID
+from Oneforall.misc import SUDOERS
 
 mongo = AsyncIOMotorClient(MONGO_DB_URI)
 db = mongo["guessgame"]
 
 users_db = db["users"]
 group_db = db["groups"]
+
+# 🔥 CHANGE THIS
+STORAGE_CHANNEL = -1003795390770  
 
 ROUND_INTERVAL = 900
 
@@ -26,15 +30,27 @@ REACTIONS = [
     "💖","💕","💌","💟","♥️","❣️","❤️‍🩹","❤️‍🔥","🧠"
 ]
 
-# ---------------- WORD ---------------- #
+# ---------------- WORD SYSTEM ---------------- #
 
-async def get_word():
+async def get_api_word():
     try:
         async with aiohttp.ClientSession() as s:
             async with s.get("https://random-word-api.herokuapp.com/word") as r:
                 return (await r.json())[0]
     except:
         return random.choice(["apple","tiger","dragon","piano"])
+
+async def get_storage_word(client):
+    try:
+        words = []
+        async for m in client.get_chat_history(STORAGE_CHANNEL, limit=50):
+            if m.caption and m.caption.startswith("WORD:"):
+                words.append(m.caption.split("WORD:")[1].strip())
+        if words:
+            return random.choice(words)
+    except:
+        pass
+    return None
 
 # ---------------- UI ---------------- #
 
@@ -52,11 +68,9 @@ def draw_word(word):
 
     overlay = Image.new("RGBA", base.size, (255,255,255,0))
     draw = ImageDraw.Draw(overlay)
-
     draw.rounded_rectangle((50, 80, 550, 280), radius=40, fill=(255,255,255,40))
 
     base = Image.alpha_composite(base.convert("RGBA"), overlay)
-
     draw = ImageDraw.Draw(base)
 
     try:
@@ -83,7 +97,7 @@ def draw_word(word):
 # ---------------- GAME ---------------- #
 
 async def send_round(client, chat_id):
-    word = await get_word()
+    word = await get_storage_word(client) or await get_api_word()
     ACTIVE[chat_id] = word
 
     img = draw_word(word)
@@ -145,7 +159,31 @@ async def answer(client, message: Message):
             f"🏆 ᴄᴏʀʀᴇᴄᴛ\n👤 {message.from_user.mention}\n💰 +10\n🪙 {coins}"
         )
 
-# ---------------- MESSAGE TRACK + MILESTONE ---------------- #
+# ---------------- IMPORT ---------------- #
+
+@app.on_message(filters.command("import") & filters.group)
+async def import_word(client, message: Message):
+
+    if message.from_user.id not in SUDOERS and message.from_user.id != OWNER_ID:
+        return await message.reply("🚫 ɴᴏ ᴀᴄᴄᴇss")
+
+    if len(message.command) < 2:
+        return await message.reply("⚠️ /ɪᴍᴘᴏʀᴛ ᴡᴏʀᴅ")
+
+    word = message.command[1].lower()
+
+    img = draw_word(word)
+
+    await client.send_photo(
+        STORAGE_CHANNEL,
+        img,
+        caption=f"WORD:{word}",
+        has_spoiler=True
+    )
+
+    await message.reply(f"✅ ɪᴍᴘᴏʀᴛᴇᴅ {word}")
+
+# ---------------- MILESTONE ---------------- #
 
 @app.on_message(filters.group, group=3)
 async def track_group(client, message: Message):
@@ -154,26 +192,21 @@ async def track_group(client, message: Message):
 
     data = await group_db.find_one({"chat_id": cid})
 
-    count = 1
-    last_milestone = 0
-
-    if data:
-        count = data.get("count", 0) + 1
-        last_milestone = data.get("last_milestone", 0)
+    count = data.get("count", 0) + 1 if data else 1
+    last = data.get("last", 0) if data else 0
 
     milestone = (count // 5000) * 5000
 
     await group_db.update_one(
         {"chat_id": cid},
-        {"$set": {"count": count, "last_milestone": last_milestone}},
+        {"$set": {"count": count}},
         upsert=True
     )
 
-    # trigger only once
-    if milestone > 0 and milestone > last_milestone:
+    if milestone > 0 and milestone > last:
         await group_db.update_one(
             {"chat_id": cid},
-            {"$set": {"last_milestone": milestone}}
+            {"$set": {"last": milestone}}
         )
 
         await message.reply(
@@ -193,12 +226,13 @@ async def gametop(client, message: Message):
 
     i = 1
     async for u in users:
-        name = u.get("name", "user")
-        coins = u.get("coins", 0)
-        text += f"{i}. {name} — {coins} 🪙\n"
+        text += f"{i}. {u.get('name')} — {u.get('coins',0)} 🪙\n"
         i += 1
 
     try:
-        await message.reply_video(LEADERBOARD_VIDEO caption=text)
+        await message.reply_video(
+            LEADERBOARD_VIDEO,
+            caption=text
+        )
     except:
         await message.reply(text)
