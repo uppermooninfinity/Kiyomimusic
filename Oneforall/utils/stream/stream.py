@@ -33,6 +33,7 @@ from Oneforall.utils.inline import (
     stream_markup2,
 )
 from Oneforall.utils.stream.queue import put_queue, put_queue_index
+from pyrogram.types import InputMediaPhoto
 
 async def stream(
     _,
@@ -135,6 +136,20 @@ async def stream(
 
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
+                
+                mystic = db[chat_id][0]["mystic"]
+
+                await mystic.edit_media(
+                  media=InputMediaPhoto(
+                    media=img,
+                    caption=_["stream_1"].format(
+                      f"https://t.me/{app.username}?start=info_{vidid}",
+                      title[:18],
+                      duration_min,
+                      user_name,
+                    )
+                  )
+                )
         if count == 0:
             return
         else:
