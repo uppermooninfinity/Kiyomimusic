@@ -17,7 +17,7 @@ users_db = db["users"]
 group_db = db["groups"]
 
 # 🔥 CHANGE THIS
-STORAGE_CHANNEL = -1003795390770  
+STORAGE_CHANNEL = -1001234567890
 
 ROUND_INTERVAL = 900
 
@@ -54,11 +54,6 @@ async def get_storage_word(client):
 
 # ---------------- UI ---------------- #
 
-def mask_word(word):
-    reveal = max(1, len(word)//3)
-    idx = random.sample(range(len(word)), reveal)
-    return "  ".join([c if i in idx else "_" for i, c in enumerate(word)])
-
 def draw_word(word):
     base = Image.new("RGB", (600, 350), "#0f172a")
 
@@ -74,11 +69,11 @@ def draw_word(word):
     draw = ImageDraw.Draw(base)
 
     try:
-        font = ImageFont.truetype("Oneforall/assets/Poppins-Bold.ttf", 70)
+        font = ImageFont.truetype("Oneforall/assets/Poppins-Bold.ttf", 80)
     except:
         font = ImageFont.load_default()
 
-    text = mask_word(word)
+    text = word.upper()
 
     bbox = draw.textbbox((0,0), text, font=font)
     w = bbox[2]-bbox[0]
@@ -87,7 +82,7 @@ def draw_word(word):
     x = (600 - w)//2
     y = (350 - h)//2
 
-    draw.text((x+2,y+2), text, fill=(0,0,0,120), font=font)
+    draw.text((x+3,y+3), text, fill=(0,0,0,120), font=font)
     draw.text((x,y), text, fill="white", font=font)
 
     path = f"/tmp/{word}.png"
@@ -98,7 +93,7 @@ def draw_word(word):
 
 async def send_round(client, chat_id):
     word = await get_storage_word(client) or await get_api_word()
-    ACTIVE[chat_id] = word
+    ACTIVE[chat_id] = word.lower()
 
     img = draw_word(word)
 
