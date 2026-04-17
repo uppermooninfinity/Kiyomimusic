@@ -26,6 +26,7 @@ suggdb = mongodb.suggestion
 cleandb = mongodb.cleanmode
 queriesdb = mongodb.queries
 userdb = mongodb.userstats
+users_collection = mongodb.userscollection
 videodb = mongodb.vipvideocalls
 chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
@@ -980,3 +981,101 @@ async def add_served_chat_clone(chat_id: int):
 
 async def delete_served_chat_clone(chat_id: int):
     await chatsdbc.delete_one({"chat_id": chat_id})
+
+async def ensure_user(user):
+    data = await users_collection.find_one({"user_id": user.id})
+
+    if not data:
+        new_user = {
+            "user_id": user.id,
+            "name": user.first_name,
+
+            "total_messages": 0,
+            "weekly": 0,
+            "monthly": 0,
+
+            "coins": 0,
+            "kills": 0,
+
+            "status": "alive",
+            "death_time": None,
+
+            "protection_expiry": None,
+            "inventory": []
+        }
+
+        await users_collection.insert_one(new_user)
+        return new_user
+
+    # name auto update
+    if data.get("name") != user.first_name:
+        await users_collection.update_one(
+            {"user_id": user.id},
+            {"$set": {"name": user.first_name}}
+        )
+        data["name"] = user.first_name
+
+    return data
+
+async def get_user(user_id: int):
+    return await users_collection.find_one({"user_id": user_id})
+
+async def add_coins(user_id: int, amount: int):
+    await users_collection.update_one(
+        {"user_id": user_id},
+        {"$inc": {"coins": amount}},
+        upsert=True
+    )
+
+async def remove_coins(user_id: int, amount: int):
+    await users_collection.update_one(
+        {"user_id": user_id},
+        {"$inc": {"coins": -amount}},
+        upsert=True
+)
+
+async def add_coins(user_id: int, amount: int):
+    await users_collection.update_one(
+        {"user_id": user_id},
+        {"$inc": {"coins": amount}},
+        upsert=True
+    )
+
+async def remove_coins(user_id: int, amount: int):
+    await users_collection.update_one(
+        {"user_id": user_id},
+        {"$inc": {"coins": -amount}},
+        upsert=True
+    )
+
+async def get_top(limit=10):
+    return users_collection.find().sort("total_messages", -1).limit(limit)
+
+async def reset_weekly():
+    await users_collection.update_many({}, {"$set": {"weekly": 0}})
+
+async def reset_monthly():
+    await users_collection.update_many({}, {"$set": {"monthly": 0}})
+
+async def auto_revive():
+    from datetime import datetime
+
+    now = datetime.utcnow()
+
+    async for u in users_collection.find({"status": "dead"}):
+        dt = u.get("death_time")
+
+        if dt and (now - dt).total_seconds() > 3600:
+            await users_collection.update_one(
+                {"user_id": u["user_id"]},
+                {"$set": {"status": "alive", "death_time": None}}
+            )
+
+async def create_indexes():
+    await users_collection.create_index("user_id", unique=True)
+
+
+
+
+
+
