@@ -7,7 +7,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from youtubesearchpython.__future__ import VideosSearch
 
 import config
-from config import BANNED_USERS
+from config import BANNED_USERS, lyrical
 from Oneforall import app
 from Oneforall.misc import _boot_, SUDOERS
 from Oneforall.plugins.sudo.sudoers import sudoers_list
@@ -26,21 +26,22 @@ from strings import get_string
 
 
 # =========================
-# LOADING ANIMATION
+# FAST LOADING ANIMATION
 # =========================
 async def loading_animation(message: Message):
-    msg = await message.reply_text("❄️ Initializing... 0%")
+    msg = await message.reply_text("❄️ Initializing...")
 
-    for i in range(0, 101, 10):
-        bar = "▓" * (i // 10) + "░" * (10 - (i // 10))
+    steps = ["░░░░░░░░░░", "▓░░░░░░░░░", "▓▓▓░░░░░░░", "▓▓▓▓▓░░░░░", "▓▓▓▓▓▓▓░░░", "▓▓▓▓▓▓▓▓▓░", "▓▓▓▓▓▓▓▓▓▓"]
+
+    for i, bar in enumerate(steps):
         try:
-            await msg.edit_text(f"❄️ Initializing...\n\n[{bar}] {i}%")
+            await msg.edit_text(f"❄️ Initializing...\n\n[{bar}] {i*15}%")
         except:
             pass
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.12)  # faster
 
     await msg.edit_text("❄️ Snowy welcomes you...")
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.5)
     await msg.delete()
 
 
@@ -59,10 +60,27 @@ async def start_pm(client, message: Message, _):
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
 
+        # =========================
+        # 🎵 LYRICS HANDLER (NEW)
+        # =========================
+        if name.startswith("lyrics_"):
+            key = name.split("_", 1)[1]
+            lyric = lyrical.get(key)
+
+            if not lyric:
+                return await message.reply_text("Lyrics expired or not found.")
+
+            if len(lyric) > 4000:
+                for i in range(0, len(lyric), 4000):
+                    await message.reply_text(lyric[i:i+4000])
+            else:
+                await message.reply_text(lyric)
+            return
+
         # HELP
         if name.startswith("help"):
             await message.reply_sticker(
-                "CAACAgUAAxkBAAEQPYppZ5NUzyEuz9krlTBI7WJxE4l9HgACxggAAtL9OVfNmn5c5Qtt7DgE"
+                "CAACAgUAAxkBAAEQ9K1p5TQsBdXVfkTvMrE5XuPpyOvpbQAC0xcAAtxe4FUWa9SzcmkqajsE"
             )
             return await message.reply_video(
                 video=config.START_VIDEO_URL,
@@ -150,7 +168,6 @@ async def start_pm(client, message: Message, _):
 async def start_gp(client, message: Message, _):
     uptime = int(time.time() - _boot_)
 
-    # Loader
     await loading_animation(message)
 
     await message.reply_video(
@@ -174,7 +191,6 @@ async def welcome_handler(client, message: Message):
             language = await get_lang(message.chat.id)
             _ = get_string(language)
 
-            # BAN CHECK
             if await is_banned_user(member.id):
                 try:
                     await message.chat.ban_member(member.id)
@@ -182,7 +198,6 @@ async def welcome_handler(client, message: Message):
                     pass
                 return
 
-            # BOT JOINED
             if member.id == app.id:
                 if message.chat.type != ChatType.SUPERGROUP:
                     await message.reply_text(_["start_4"])
@@ -212,27 +227,6 @@ async def welcome_handler(client, message: Message):
                 await add_served_chat(message.chat.id)
                 await message.stop_propagation()
                 return
-
-            # OWNER WELCOME
-            if member.id == config.OWNER_ID:
-                msg = await message.reply_text(
-                    f"👑 <b>BOT OWNER JOINED</b>\n\n{member.mention}"
-                )
-                await asyncio.sleep(20)
-                await msg.delete()
-
-            # SUDO WELCOME
-            if isinstance(SUDOERS, (list, set)):
-                is_sudo = member.id in SUDOERS
-            else:
-                is_sudo = member.id == SUDOERS
-
-            if is_sudo:
-                msg = await message.reply_text(
-                    f"⚡ <b>SUDO USER JOINED</b>\n\n{member.mention}"
-                )
-                await asyncio.sleep(20)
-                await msg.delete()
 
         except Exception as e:
             print(f"[WELCOME ERROR] {e}")
