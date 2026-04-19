@@ -7,6 +7,7 @@ from Oneforall.core.mongo import mongodb
 authdb = mongodb.adminauth
 authuserdb = mongodb.authuser
 autoenddb = mongodb.autoend
+thumbdb = mongodb.thumbnail
 assdb = mongodb.assistants
 blacklist_chatdb = mongodb.blacklistChat
 blockeddb = mongodb.blockedusers
@@ -1075,7 +1076,19 @@ async def create_indexes():
     await users_collection.create_index("user_id", unique=True)
 
 
+async def set_thumb_mode(chat_id: int, value: bool):
+    await thumbdb.update_one(
+        {"_id": chat_id},
+        {"$set": {"thumb": value}},
+        upsert=True
+    )
 
+async def get_thumb_mode(chat_id: int):
+    data = await thumbdb.find_one({"_id": chat_id})
 
+    if not data:
+        return True  # default ON
+
+    return data.get("thumb", True)
 
 
