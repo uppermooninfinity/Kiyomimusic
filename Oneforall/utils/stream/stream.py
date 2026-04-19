@@ -122,19 +122,30 @@ async def stream(
                     "video" if video else "audio",
                     forceplay=forceplay,
                 )
+                thumb = await get_thumb_mode(chat_id)
                 img = await get_thumb(vidid)
                 button = stream_markup(_, vidid, chat_id)
-                run = await app.send_photo(
-                    original_chat_id,
-                    photo=img,
-                    caption=_["stream_1"].format(
-                        f"https://t.me/{app.username}?start=info_{vidid}",
-                        title[:18],
-                        duration_min,
-                        user_name,
-                    ),
-                    reply_markup=InlineKeyboardMarkup(button),
+
+                text = _["stream_1"].format(
+                  f"https://t.me/{app.username}?start=info_{vidid}",
+                  title[:18],
+                  duration_min,
+                  user_name,
                 )
+
+                if thumb and img:
+                    run = await app.send_photo(
+                      original_chat_id,
+                      photo=img,
+                      caption=text,
+                      reply_markup=InlineKeyboardMarkup(button),
+                   )
+                 else:
+                    run = await app.send_message(
+                      original_chat_id,
+                      text=text,
+                      reply_markup=InlineKeyboardMarkup(button),
+                    )
 
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
