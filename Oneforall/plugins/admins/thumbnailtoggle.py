@@ -4,8 +4,8 @@ from pyrogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     CallbackQuery,
-    ChatMemberStatus,
 )
+from pyrogram.enums import ChatMemberStatus
 
 from Oneforall import app
 from Oneforall.utils.database import set_thumb_mode, get_thumb_mode
