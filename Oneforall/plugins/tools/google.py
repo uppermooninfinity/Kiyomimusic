@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from googlesearch import search
@@ -6,7 +7,8 @@ from SafoneAPI import SafoneAPI
 
 from Oneforall import app
 
-@app.on_message(filters.command(["google", "search"]))
+
+@app.on_message(filters.command(["google", "gle"]))
 async def google(bot, message):
     if len(message.command) < 2 and not message.reply_to_message:
         return await message.reply_text("Example:\n\n`/google lord ram`")
@@ -19,7 +21,9 @@ async def google(bot, message):
     msg = await message.reply_text("**Searching on Google...**")
 
     try:
-        results = list(search(user_input, advanced=True, num_results=5))
+        results = await asyncio.to_thread(
+            lambda: list(search(user_input, advanced=True, num_results=5))
+        )
 
         if not results:
             return await msg.edit("No results found.")
@@ -30,14 +34,14 @@ async def google(bot, message):
             title = r.title or "No Title"
             url = r.url or ""
             desc = r.description or "No description"
-
-            text += f"\n• <a href='{url}'>{title}</a>\n{desc}\n"
+            text += f"• <a href='{url}'>{title}</a>\n{desc}\n\n"
 
         await msg.edit(text, disable_web_page_preview=True)
 
-    except Exception as e:
-        logging.exception(e)
+    except Exception:
+        logging.exception("Google search error")
         await msg.edit("Error while searching.")
+
 
 @app.on_message(filters.command(["app", "apps"]))
 async def app_search(bot, message):
@@ -76,6 +80,6 @@ async def app_search(bot, message):
         await message.reply_photo(icon, caption=caption)
         await msg.delete()
 
-    except Exception as e:
-        logging.exception(e)
+    except Exception:
+        logging.exception("App search error")
         await msg.edit("Error while fetching app.")
