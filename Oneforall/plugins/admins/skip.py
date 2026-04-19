@@ -24,8 +24,8 @@ def skip_caption(app, videoid, title, dur, user):
 ┃ 👤 Requested by: {user}
 ╰━━━━━━━━━━━━━━━━━━━╯
 
-✨ **Now Playing Next Track...**
-🔗 https://t.me/{app.username}?start=info_{videoid}
+✨ *Now Playing Next Track...*
+🔗 *Powered by: @theteaminfinitynetwork
 """
 
 
