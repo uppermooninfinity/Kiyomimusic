@@ -4,7 +4,7 @@ import logging
 
 from httpx import AsyncClient, Timeout
 from pyrogram import filters
-from pyrogram.types import Message
+from pyrogram.types import Message, InputSticker
 
 from Oneforall import app
 
@@ -66,6 +66,24 @@ async def get_message_sender_name(ctx: Message):
         return ""
 
 
+async def get_custom_emoji(ctx: Message):
+    if ctx.forward_date:
+        return ""
+    return ctx.from_user.emoji_status.custom_emoji_id if ctx.from_user else ""
+
+
+async def get_message_sender_username(ctx: Message):
+    if ctx.forward_date:
+        return ""
+    elif ctx.from_user and ctx.from_user.username:
+        return ctx.from_user.username
+    return ""
+
+
+async def get_message_sender_photo(ctx: Message):
+    return ""
+
+
 async def get_text_or_caption(ctx: Message):
     return ctx.text or ctx.caption or ""
 
@@ -125,7 +143,7 @@ async def msg_quotly_cmd(self: app, ctx: Message):
         bio_sticker.name = "misskatyquote_sticker.webp"
 
         await ww.delete()
-        sent = await ctx.reply_sticker(bio_sticker)
+        await ctx.reply_sticker(bio_sticker)
 
         user_mention = ctx.from_user.mention if ctx.from_user else "User"
         note = await ctx.reply_text(
@@ -152,15 +170,19 @@ async def kang_sticker(client, message: Message):
     pack_name = f"a{user_id}_by_{bot_username}"
     pack_title = f"{message.from_user.first_name}'s Pack"
 
-    file = await client.download_media(sticker.file_id)
+    emoji = sticker.emoji or "🙂"
 
     try:
+        input_sticker = InputSticker(
+            sticker=sticker.file_id,
+            emoji_list=[emoji],
+        )
+
         try:
             await client.add_sticker_to_set(
                 user_id=user_id,
                 name=pack_name,
-                sticker=file,
-                emojis=sticker.emoji or "🙂",
+                stickers=[input_sticker],
             )
             await message.reply_text(f"Added\nhttps://t.me/addstickers/{pack_name}")
 
@@ -169,10 +191,10 @@ async def kang_sticker(client, message: Message):
                 user_id=user_id,
                 name=pack_name,
                 title=pack_title,
-                stickers=[{"sticker": file, "emoji": sticker.emoji or "🙂"}],
+                stickers=[input_sticker],
             )
             await message.reply_text(f"Created\nhttps://t.me/addstickers/{pack_name}")
 
     except Exception as e:
         logging.exception(e)
-        await message.reply_text("Failed")
+        await message.reply_text(f"Failed: {e}")
