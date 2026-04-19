@@ -198,17 +198,17 @@ async def stream(
             return
 
             if await is_active_chat(chat_id):
-            await put_queue(
-                chat_id,
-                original_chat_id,
-                file_path if direct else f"vid_{vidid}",
-                title,
-                duration_min,
-                user_name,
-                vidid,
-                user_id,
-                "video" if video else "audio",
-            )
+               await put_queue(
+                 chat_id,
+                 original_chat_id,
+                 file_path if direct else f"vid_{vidid}",
+                 title,
+                 duration_min,
+                 user_name,
+                 vidid,
+                 user_id,
+                 "video" if video else "audio",
+               )
 
             img = await get_thumb(vidid)
             position = len(db.get(chat_id)) - 1
