@@ -4,7 +4,7 @@ import logging
 
 from httpx import AsyncClient, Timeout
 from pyrogram import filters
-from pyrogram.types import Message, InputSticker
+from pyrogram.types import Message
 
 from Oneforall import app
 
@@ -95,6 +95,27 @@ async def pyrogram_to_quotly(messages, is_reply):
 
     for message in messages:
         the_message_dict_to_append = {}
+        if message.entities:
+            the_message_dict_to_append["entities"] = [
+                {
+                    "type": entity.type.name.lower(),
+                    "offset": entity.offset,
+                    "length": entity.length,
+                }
+                for entity in message.entities
+            ]
+        elif message.caption_entities:
+            the_message_dict_to_append["entities"] = [
+                {
+                    "type": entity.type.name.lower(),
+                    "offset": entity.offset,
+                    "length": entity.length,
+                }
+                for entity in message.caption_entities
+            ]
+        else:
+            the_message_dict_to_append["entities"] = []
+
         the_message_dict_to_append["chatId"] = await get_message_sender_id(message)
         the_message_dict_to_append["text"] = await get_text_or_caption(message)
         the_message_dict_to_append["avatar"] = True
@@ -132,8 +153,7 @@ def isArgInt(txt) -> list:
 
 @app.on_message(filters.command(["q", "r"]) & filters.reply)
 async def msg_quotly_cmd(self: app, ctx: Message):
-    ww = await ctx.reply_text("wait...")
-
+    ww = await ctx.reply_text("ᴡᴀɪᴛ ᴀ sᴇᴄᴏɴᴅ......")
     is_reply = ctx.command[0].endswith("r")
 
     try:
@@ -146,7 +166,7 @@ async def msg_quotly_cmd(self: app, ctx: Message):
 
         make_quotly = await pyrogram_to_quotly(messages, is_reply=is_reply)
         bio_sticker = BytesIO(make_quotly)
-        bio_sticker.name = "quote.webp"
+        bio_sticker.name = "misskatyquote_sticker.webp"
 
         await ww.delete()
         await ctx.reply_sticker(bio_sticker)
@@ -179,16 +199,14 @@ async def kang_sticker(client, message: Message):
     emoji = sticker.emoji or "🙂"
 
     try:
-        input_sticker = InputSticker(
-            sticker=sticker.file_id,
-            emoji_list=[emoji],
-        )
+        file = await client.download_media(sticker.file_id)
 
         try:
             await client.add_sticker_to_set(
                 user_id=user_id,
                 name=pack_name,
-                stickers=[input_sticker],
+                png_sticker=file,
+                emojis=emoji,
             )
             await message.reply_text(f"https://t.me/addstickers/{pack_name}")
 
@@ -197,7 +215,8 @@ async def kang_sticker(client, message: Message):
                 user_id=user_id,
                 name=pack_name,
                 title=pack_title,
-                stickers=[input_sticker],
+                png_sticker=file,
+                emojis=emoji,
             )
             await message.reply_text(f"https://t.me/addstickers/{pack_name}")
 
