@@ -134,13 +134,13 @@ async def stream(
                 )
 
                 if thumb and img:
-                    run = await app.send_photo(
+                   run = await app.send_photo(
                       original_chat_id,
                       photo=img,
                       caption=text,
                       reply_markup=InlineKeyboardMarkup(button),
-                    )
-                  else:
+                   )
+                 else:
                     run = await app.send_message(
                       original_chat_id,
                       text=text,
