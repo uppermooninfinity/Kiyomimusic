@@ -18,7 +18,7 @@ async def google(bot, message):
     else:
         user_input = " ".join(message.command[1:])
 
-    msg = await message.reply_text("**Searching on Google...**")
+    msg = await message.reply_text("🔍")
 
     try:
         results = await asyncio.to_thread(
