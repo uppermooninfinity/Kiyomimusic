@@ -8,6 +8,8 @@ import config
 from Oneforall import YouTube, app
 from Oneforall.core.call import Hotty
 from Oneforall.utils.thumbnails import get_thumb
+from Oneforall.utils.database import get_thumb_mode
+
 
 # Define a dictionary to track the last message timestamp for each user
 user_last_message_time = {}
