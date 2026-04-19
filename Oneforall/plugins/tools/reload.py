@@ -28,20 +28,48 @@ async def reload_admin_cache(client, message: Message, _):
             saved = rel[message.chat.id]
             if saved > time.time():
                 left = get_readable_time((int(saved) - int(time.time())))
-                return await message.reply_text(_["reload_1"].format(left))
+
+                mystic = await message.reply_photo(
+                    photo="https://graph.org/file/f2f2a65b05d3db8769cb4-fb3c6d9724730accf0.jpg",
+                    caption="⏳"
+                )
+
+                await asyncio.sleep(0.5)
+                await mystic.edit_caption("⏳ Reloading.")
+
+                await asyncio.sleep(0.5)
+                await mystic.edit_caption("⏳ Reloading..")
+
+                await asyncio.sleep(0.5)
+                await mystic.edit_caption("⏳ Reloading...")
+
+                await asyncio.sleep(0.5)
+                return await mystic.edit_caption(_["reload_1"].format(left))
+
         adminlist[message.chat.id] = []
+
+        # 🔥 Animation while processing
+        mystic = await message.reply_photo(
+            photo="https://graph.org/file/f2f2a65b05d3db8769cb4-fb3c6d9724730accf0.jpg",
+            caption="⏳ Reloading..."
+        )
+
         async for user in app.get_chat_members(
             message.chat.id, filter=ChatMembersFilter.ADMINISTRATORS
         ):
             if user.privileges.can_manage_video_chats:
                 adminlist[message.chat.id].append(user.user.id)
+
         authusers = await get_authuser_names(message.chat.id)
         for user in authusers:
             user_id = await alpha_to_int(user)
             adminlist[message.chat.id].append(user_id)
+
         now = int(time.time()) + 180
         rel[message.chat.id] = now
-        await message.reply_text(_["reload_2"])
+
+        await mystic.edit_caption(_["reload_2"])
+
     except:
         await message.reply_text(_["reload_3"])
 
