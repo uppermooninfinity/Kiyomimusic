@@ -139,8 +139,8 @@ async def stream(
                       photo=img,
                       caption=text,
                       reply_markup=InlineKeyboardMarkup(button),
-                   )
-                 else:
+                    )
+                  else:
                     run = await app.send_message(
                       original_chat_id,
                       text=text,
