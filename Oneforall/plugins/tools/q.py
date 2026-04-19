@@ -66,12 +66,6 @@ async def get_message_sender_name(ctx: Message):
         return ""
 
 
-async def get_custom_emoji(ctx: Message):
-    if ctx.forward_date:
-        return ""
-    return ctx.from_user.emoji_status.custom_emoji_id if ctx.from_user else ""
-
-
 async def get_message_sender_username(ctx: Message):
     if ctx.forward_date:
         return ""
@@ -100,16 +94,27 @@ async def pyrogram_to_quotly(messages, is_reply):
     }
 
     for message in messages:
-        payload["messages"].append(
-            {
-                "chatId": await get_message_sender_id(message),
-                "text": await get_text_or_caption(message),
-                "from": {
-                    "id": await get_message_sender_id(message),
-                    "name": await get_message_sender_name(message),
-                },
+        the_message_dict_to_append = {}
+        the_message_dict_to_append["chatId"] = await get_message_sender_id(message)
+        the_message_dict_to_append["text"] = await get_text_or_caption(message)
+        the_message_dict_to_append["avatar"] = True
+        the_message_dict_to_append["from"] = {}
+        the_message_dict_to_append["from"]["id"] = await get_message_sender_id(message)
+        the_message_dict_to_append["from"]["name"] = await get_message_sender_name(message)
+        the_message_dict_to_append["from"]["username"] = await get_message_sender_username(message)
+        the_message_dict_to_append["from"]["type"] = message.chat.type.name.lower()
+        the_message_dict_to_append["from"]["photo"] = await get_message_sender_photo(message)
+
+        if message.reply_to_message and is_reply:
+            the_message_dict_to_append["replyMessage"] = {
+                "name": await get_message_sender_name(message.reply_to_message),
+                "text": await get_text_or_caption(message.reply_to_message),
+                "chatId": await get_message_sender_id(message.reply_to_message),
             }
-        )
+        else:
+            the_message_dict_to_append["replyMessage"] = {}
+
+        payload["messages"].append(the_message_dict_to_append)
 
     r = await fetch.post("https://bot.lyo.su/quote/generate.png", json=payload)
     if not r.is_error:
@@ -127,7 +132,8 @@ def isArgInt(txt) -> list:
 
 @app.on_message(filters.command(["q", "r"]) & filters.reply)
 async def msg_quotly_cmd(self: app, ctx: Message):
-    ww = await ctx.reply_text("ᴡᴀɪᴛ ᴀ sᴇᴄᴏɴᴅ......")
+    ww = await ctx.reply_text("wait...")
+
     is_reply = ctx.command[0].endswith("r")
 
     try:
@@ -140,7 +146,7 @@ async def msg_quotly_cmd(self: app, ctx: Message):
 
         make_quotly = await pyrogram_to_quotly(messages, is_reply=is_reply)
         bio_sticker = BytesIO(make_quotly)
-        bio_sticker.name = "misskatyquote_sticker.webp"
+        bio_sticker.name = "quote.webp"
 
         await ww.delete()
         await ctx.reply_sticker(bio_sticker)
@@ -155,7 +161,7 @@ async def msg_quotly_cmd(self: app, ctx: Message):
 
     except Exception as e:
         await ww.delete()
-        return await ctx.reply_msg(f"ERROR: {e}")
+        return await ctx.reply_text(f"ERROR: {e}")
 
 
 @app.on_message(filters.command("kang") & filters.reply)
@@ -184,7 +190,7 @@ async def kang_sticker(client, message: Message):
                 name=pack_name,
                 stickers=[input_sticker],
             )
-            await message.reply_text(f"Added\nhttps://t.me/addstickers/{pack_name}")
+            await message.reply_text(f"https://t.me/addstickers/{pack_name}")
 
         except Exception:
             await client.create_new_sticker_set(
@@ -193,8 +199,8 @@ async def kang_sticker(client, message: Message):
                 title=pack_title,
                 stickers=[input_sticker],
             )
-            await message.reply_text(f"Created\nhttps://t.me/addstickers/{pack_name}")
+            await message.reply_text(f"https://t.me/addstickers/{pack_name}")
 
     except Exception as e:
         logging.exception(e)
-        await message.reply_text(f"Failed: {e}")
+        await message.reply_text("kang failed")
