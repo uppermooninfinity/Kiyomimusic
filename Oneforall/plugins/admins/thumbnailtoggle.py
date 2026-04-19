@@ -33,7 +33,7 @@ def panel_buttons(status: bool):
                 ),
             ],
             [
-                InlineKeyboardButton("⬅️ ʙᴀᴄᴋ", callback_data="settings_back")
+                InlineKeyboardButton("🗑️ ᴄʟᴏsᴇ 🗑️", callback_data="close")
             ],
         ]
     )
