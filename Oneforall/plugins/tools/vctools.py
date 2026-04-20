@@ -10,7 +10,7 @@ from Oneforall import app
 
 
 # ─── 🎥 CATBOX VIDEO LINK ───
-CATBOX_URL = "https://files.catbox.moe/yourvideo.mp4"
+CATBOX_URL = "https://graph.org/file/9f9cb0ab87e4f7b6c061a-3544c3bdcf44adbe03.mp4"
 VIDEO_PATH = "vc_video.mp4"
 
 
