@@ -408,6 +408,7 @@ class Call(PyTgCalls):
                     pass
                 return await client.leave_group_call(chat_id, close=False)
             except Exception:
+                return
         else:
             queued = check[0]["file"]
             language = await get_lang(chat_id)
