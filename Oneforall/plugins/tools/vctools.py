@@ -1,95 +1,138 @@
-from pyrogram import *
-from pyrogram import filters
-from pyrogram.types import *
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from pyrogram import Client, filters
+from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
+import aiohttp
+import re
+import math
+import asyncio
 
 from Oneforall import app
 
+# ─── 🎞️ PUT YOUR GIF FILE_ID HERE ───
+GIF_ID = "PASTE_YOUR_GIF_FILE_ID_HERE"
 
-# vc on
+
+# ─── 🧪 GET GIF FILE_ID (TEMP - REMOVE AFTER USE) ───
+@app.on_message(filters.animation)
+async def get_file_id(_, message: Message):
+    print("GIF FILE ID:", message.animation.file_id)
+
+
+# ─── 🎥 VC START ───
 @app.on_message(filters.video_chat_started)
-async def brah(_, msg):
-    await msg.reply("**🌐ᴠɪᴅᴇᴏ ᴄʜᴀᴛ sᴛᴀʀᴛᴇᴅ⚕️**")
+async def vc_started(_, message: Message):
+    await message.reply_text(
+        "<b>┃ 🎙️ ᴠᴄ ɪs ɴᴏᴡ ʟɪᴠᴇ</b>\n\n"
+        "❯ ᴛʜᴇ sᴛᴀɢᴇ ɪs sᴇᴛ… ᴊᴏɪɴ ᴛʜᴇ ᴠɪʙᴇ ⚡\n"
+        "❯ ᴅᴏɴ’ᴛ ᴍɪss ᴛʜᴇ ᴍᴏᴍᴇɴᴛ 🎧",
+        parse_mode="html"
+    )
 
 
-# vc off
+# ─── 📴 VC END ───
 @app.on_message(filters.video_chat_ended)
-async def brah2(_, msg):
-    await msg.reply("♻️ᴠɪᴅᴇᴏ ᴄʜᴀᴛ ᴇɴᴅᴇᴅ🔸**")
+async def vc_ended(_, message: Message):
+    await message.reply_text(
+        "<b>┃ 🕊️ ᴠᴄ ᴇɴᴅᴇᴅ</b>\n\n"
+        "❯ sɪʟᴇɴᴄᴇ ʀᴇᴛᴜʀɴs… 🎶\n"
+        "❯ ᴜɴᴛɪʟ ɴᴇxᴛ ᴛɪᴍᴇ ⚡",
+        parse_mode="html"
+    )
 
 
-# invite members on vc
+# ─── 👥 VC INVITE WITH GIF + AUTO DELETE ───
 @app.on_message(filters.video_chat_members_invited)
-async def brah3(app: app, message: Message):
-    text = f"➻ {message.from_user.mention}\n\n🩷 ɪs ᴡᴀɪᴛɪɴɢ ғᴏʀ ʏᴏᴜ ʙᴜᴅᴅʏ ʜᴜʀʀʏ ᴜᴘ :\n\n**➻ **"
-    x = 0
-    for user in message.video_chat_members_invited.users:
+async def vc_invited(client: Client, message: Message):
+    user = message.from_user
+
+    text = (
+        "<b>┃ 💌 ɪɴᴠɪᴛᴇ ᴀʟᴇʀᴛ</b>\n\n"
+        f"❯ {user.mention} ɪs ᴄᴀʟʟɪɴɢ ʏᴏᴜ ᴛᴏ ᴛʜᴇ ᴠᴄ 🎙️\n\n"
+        "❯ ᴛʜᴇ ᴠɪʙᴇ ɪs sᴇᴛ… ᴅᴏɴ’ᴛ ᴍɪss ɪᴛ ⚡\n\n"
+        "<b>┃ ɪɴᴠɪᴛᴇᴅ ᴍᴇᴍʙᴇʀs</b>\n"
+    )
+
+    for member in message.video_chat_members_invited.users:
         try:
-            text += f"[{user.first_name}](tg://user?id={user.id}) "
-            x += 1
-        except Exception:
+            text += f"❯ <a href='tg://user?id={member.id}'>{member.first_name}</a>\n"
+        except:
             pass
 
-    try:
-        invite_link = await app.export_chat_invite_link(message.chat.id)
-        add_link = f"https://t.me/{app.username}?startgroup=true"
-        reply_text = f"{text} 🤭🤭"
+    text += "\n<b>┃ 🚀 ᴊᴏɪɴ ɴᴏᴡ ᴀɴᴅ ᴍᴀᴋᴇ ɪᴛ ʟɪᴛ</b>"
 
-        await message.reply(
-            reply_text,
-            reply_markup=InlineKeyboardMarkup(
+    sent = await message.reply_animation(
+        animation=GIF_ID,
+        caption=text,
+        parse_mode="html",
+        reply_markup=InlineKeyboardMarkup(
+            [
                 [
-                    [InlineKeyboardButton(text="ᴅᴇᴠᴇʟᴏᴘᴇʀ", url="https://t.me/cyber_github)],
+                    InlineKeyboardButton(
+                        "👨‍💻 ᴅᴇᴠᴇʟᴏᴘᴇʀ",
+                        url="https://t.me/theinfinitynetwork"
+                    )
                 ]
-            ),
-        )
-    except Exception as e:
-        print(f"Error: {e}")
-
-
-####
-
-
-@app.on_message(filters.command("math", prefixes="/"))
-def calculate_math(client, message):
-    expression = message.text.split("/math ", 1)[1]
-    try:
-        result = eval(expression)
-        response = f"ᴛʜᴇ ʀᴇsᴜʟᴛ ɪs : {result}"
-    except:
-        response = "ɪɴᴠᴀʟɪᴅ ᴇxᴘʀᴇssɪᴏɴ"
-    message.reply(response)
-
-
-@app.on_message(filters.command(["spg"], ["/", "!", "."]))
-async def search(event):
-    msg = await event.respond("Searching...")
-    async with aiohttp.ClientSession() as session:
-        start = 1
-        async with session.get(
-            f"https://content-customsearch.googleapis.com/customsearch/v1?cx=ec8db9e1f9e41e65e&q={event.text.split()[1]}&key=AIzaSyAa8yy0GdcGPHdtD083HiGGx_S0vMPScDM&start={start}",
-            headers={"x-referer": "https://explorer.apis.google.com"},
-        ) as r:
-            response = await r.json()
-            result = ""
-
-            if not response.get("items"):
-                return await msg.edit("No results found!")
-            for item in response["items"]:
-                title = item["title"]
-                link = item["link"]
-                if "/s" in item["link"]:
-                    link = item["link"].replace("/s", "")
-                elif re.search(r"\/\d", item["link"]):
-                    link = re.sub(r"\/\d", "", item["link"])
-                if "?" in link:
-                    link = link.split("?")[0]
-                if link in result:
-                    # remove duplicates
-                    continue
-                result += f"{title}\n{link}\n\n"
-            prev_and_next_btns = [
-                Button.inline("▶️Next▶️", data=f"next {start+10} {event.text.split()[1]}")
             ]
-            await msg.edit(result, link_preview=False, buttons=prev_and_next_btns)
-            await session.close()
+        ),
+    )
+
+    # ⏳ AUTO DELETE AFTER 15 SEC
+    await asyncio.sleep(15)
+    try:
+        await sent.delete()
+    except:
+        pass
+
+
+# ─── 🧮 SAFE MATH ───
+@app.on_message(filters.command("math"))
+async def calculate_math(_, message: Message):
+    try:
+        expression = message.text.split(maxsplit=1)[1]
+
+        allowed_names = {k: v for k, v in math.__dict__.items() if not k.startswith("_")}
+        result = eval(expression, {"__builtins__": {}}, allowed_names)
+
+        await message.reply_text(
+            f"<b>┃ 🧠 ʀᴇsᴜʟᴛ</b>\n\n❯ <code>{result}</code>",
+            parse_mode="html"
+        )
+    except:
+        await message.reply_text(
+            "<b>┃ ⚠️ ɪɴᴠᴀʟɪᴅ ᴇxᴘʀᴇssɪᴏɴ</b>",
+            parse_mode="html"
+        )
+
+
+# ─── 🔍 SEARCH ───
+@app.on_message(filters.command("spg", prefixes=["/", "!", "."]))
+async def search(_, message: Message):
+    if len(message.command) < 2:
+        return await message.reply_text(
+            "<b>┃ ❗ ᴘʟᴇᴀsᴇ ɢɪᴠᴇ sᴏᴍᴇᴛʜɪɴɢ ᴛᴏ sᴇᴀʀᴄʜ</b>",
+            parse_mode="html"
+        )
+
+    query = message.text.split(maxsplit=1)[1]
+    msg = await message.reply_text("🔎 sᴇᴀʀᴄʜɪɴɢ...")
+
+    async with aiohttp.ClientSession() as session:
+        url = f"https://content-customsearch.googleapis.com/customsearch/v1?cx=ec8db9e1f9e41e65e&q={query}&key=YOUR_API_KEY&start=1"
+
+        async with session.get(url) as r:
+            data = await r.json()
+
+    if not data.get("items"):
+        return await msg.edit("❌ ɴᴏ ʀᴇsᴜʟᴛs ғᴏᴜɴᴅ")
+
+    result = "<b>┃ 🌐 sᴇᴀʀᴄʜ ʀᴇsᴜʟᴛs</b>\n\n"
+
+    for item in data["items"][:5]:
+        title = item["title"]
+        link = item["link"]
+
+        link = link.split("?")[0]
+        link = re.sub(r"/\d", "", link)
+
+        result += f"❯ <b>{title}</b>\n{link}\n\n"
+
+    await msg.edit(result, disable_web_page_preview=True, parse_mode="html")
