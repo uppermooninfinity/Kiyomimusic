@@ -406,7 +406,7 @@ class Call(PyTgCalls):
                     )
                 except:
                     pass
-                return await client.leave_group_call(chat_id, close=False)
+                return await client.leave_group_call(chat_id)
             except Exception:
                 return
         else:
