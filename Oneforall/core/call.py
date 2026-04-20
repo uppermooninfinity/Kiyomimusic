@@ -360,12 +360,54 @@ class Call(PyTgCalls):
             await auto_clean(popped)
             if not check:
                 await _clear_(chat_id)
+                try:
+                    buttons = InlineKeyboardMarkup(
+                        [
+                            [
+                                InlineKeyboardButton(
+                                    "✙ ʌᴅᴅ ϻє вᴧʙʏ ✙",
+                                    url=f"https://t.me/{app.username}?startgroup=true",
+                                ),
+                                InlineKeyboardButton(
+                                    "⋞ ᴄʟᴏsє ⋟", callback_data="close_message"
+                                ),
+                            ]
+                        ]
+                    )
+                    await app.send_message(
+                        chat_id,
+                        "⛩️ 𝐓ʜᴇ 𝐐ᴜᴇᴜᴇ 𝐇ᴀs 𝐅ɪɴɪsʜᴇᴅ. 𝐔sᴇ /play 𝐓ᴏ 𝐀ᴅᴅ 𝐌ᴏʀᴇ 𝐒ᴏɴɢs!!",
+                        reply_markup=buttons,
+                    )
+                except:
+                    pass
                 return await client.leave_group_call(chat_id)
-        except:
+        except Exception:
             try:
                 await _clear_(chat_id)
+                try:
+                    buttons = InlineKeyboardMarkup(
+                        [
+                            [
+                                InlineKeyboardButton(
+                                    "✙ ʌᴅᴅ ϻє вᴧʙʏ ✙",
+                                    url=f"https://t.me/{app.username}?startgroup=true",
+                                ),
+                                InlineKeyboardButton(
+                                    "⋞ ᴄʟᴏsє ⋟", callback_data="close_message"
+                                ),
+                            ]
+                        ]
+                    )
+                    await app.send_message(
+                        chat_id,
+                        "🗑️ 𝐓ʜᴇ 𝐐ᴜᴇᴜᴇ 𝐇ᴀs 𝐅ɪɴɪsʜᴇᴅ. 𝐔sᴇ /play 𝐓ᴏ 𝐀ᴅᴅ 𝐌ᴏʀᴇ 𝐒ᴏɴɢs!!",
+                        reply_markup=buttons,
+                    )
+                except:
+                    pass
                 return await client.leave_group_call(chat_id)
-            except:
+        except Exception:
                 return
         else:
             queued = check[0]["file"]
