@@ -9,34 +9,40 @@ import os
 from Oneforall import app
 
 
-# ─── 🎥 CATBOX VIDEO LINK ───
-CATBOX_URL = "https://graph.org/file/9f9cb0ab87e4f7b6c061a-3544c3bdcf44adbe03.mp4"
+# ─────────────────────────────
+# 🎥 VIDEO URL (CATBOX / DIRECT MP4)
+# ─────────────────────────────
+VIDEO_URL = "https://graph.org/file/9f9cb0ab87e4f7b6c061a-3544c3bdcf44adbe03.mp4"
 VIDEO_PATH = "vc_video.mp4"
 
 
-# ─── 🎙️ VC START ───
+# ─────────────────────────────
+# 🎙️ VC START
+# ─────────────────────────────
 @app.on_message(filters.video_chat_started)
 async def vc_started(_, message: Message):
     await message.reply_text(
         "<b>┃ 🎙️ ᴠᴄ ɪs ɴᴏᴡ ʟɪᴠᴇ</b>\n\n"
         "❯ sᴛᴀɢᴇ ʀᴇᴀᴅʏ ⚡\n"
-        "❯ ᴊᴏɪɴ ᴛʜᴇ ᴠɪʙᴇ 🎧",
-        parse_mode="html"
+        "❯ ᴊᴏɪɴ ᴛʜᴇ ᴠɪʙᴇ 🎧"
     )
 
 
-# ─── 📴 VC END ───
+# ─────────────────────────────
+# 📴 VC END
+# ─────────────────────────────
 @app.on_message(filters.video_chat_ended)
 async def vc_ended(_, message: Message):
     await message.reply_text(
         "<b>┃ 🕊️ ᴠᴄ ᴇɴᴅᴇᴅ</b>\n\n"
         "❯ sɪʟᴇɴᴄᴇ ʀᴇᴛᴜʀɴs 🎶\n"
-        "❯ sᴇᴇ ʏᴏᴜ sᴏᴏɴ ⚡",
-        parse_mode="html"
+        "❯ sᴇᴇ ʏᴏᴜ sᴏᴏɴ ⚡"
     )
 
 
-# ─── 👥 VC INVITE (CATBOX VIDEO) ───
+# ─────────────────────────────
+# 👥 VC INVITE + VIDEO ATTACHMENT
+# ─────────────────────────────
 @app.on_message(filters.video_chat_members_invited)
 async def vc_invited(_, message: Message):
     user = message.from_user
@@ -44,28 +50,38 @@ async def vc_invited(_, message: Message):
     text = (
         "<b>┃ 💌 ɪɴᴠɪᴛᴇ ᴀʟᴇʀᴛ</b>\n\n"
         f"❯ {user.mention} ɪɴᴠɪᴛᴇᴅ ʏᴏᴜ 🎙️\n\n"
-        "<b>┃ ᴊᴏɪɴ ɴᴏᴡ ⚡</b>"
+        "<b>┃ ᴊᴏɪɴ ɴᴏᴡ ⚡</b>\n"
     )
 
-    # ─── DOWNLOAD CATBOX VIDEO ───
+    # ─── DOWNLOAD VIDEO ───
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(CATBOX_URL) as resp:
+            async with session.get(VIDEO_URL) as resp:
                 if resp.status == 200:
                     with open(VIDEO_PATH, "wb") as f:
                         f.write(await resp.read())
+                else:
+                    return await message.reply_text("❌ ᴠɪᴅᴇᴏ ʟᴏᴀᴅ ғᴀɪʟᴇᴅ")
     except:
-        return await message.reply_text("❌ ᴠɪᴅᴇᴏ ʟᴏᴀᴅ ғᴀɪʟᴇᴅ")
+        return await message.reply_text("❌ ᴅᴏᴡɴʟᴏᴀᴅ ᴇʀʀᴏʀ")
 
+    # ─── SEND VIDEO ───
     sent = await message.reply_video(
         video=VIDEO_PATH,
         caption=text,
-        parse_mode="html",
         reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("👨‍💻 ᴅᴇᴠᴇʟᴏᴘᴇʀ", url="https://t.me/theinfinitynetwork")]]
+            [
+                [
+                    InlineKeyboardButton(
+                        "👨‍💻 ᴅᴇᴠᴇʟᴏᴘᴇʀ",
+                        url="https://t.me/theinfinitynetwork"
+                    )
+                ]
+            ]
         ),
     )
 
+    # AUTO DELETE
     await asyncio.sleep(15)
 
     try:
@@ -73,12 +89,14 @@ async def vc_invited(_, message: Message):
     except:
         pass
 
-    # cleanup
+    # CLEAN FILE
     if os.path.exists(VIDEO_PATH):
         os.remove(VIDEO_PATH)
 
 
-# ─── 🧮 MATH ───
+# ─────────────────────────────
+# 🧮 MATH COMMAND
+# ─────────────────────────────
 @app.on_message(filters.command("math"))
 async def calculate_math(_, message: Message):
     try:
@@ -87,23 +105,23 @@ async def calculate_math(_, message: Message):
         result = eval(expression, {"__builtins__": {}}, allowed_names)
 
         await message.reply_text(
-            f"<b>┃ 🧠 ʀᴇsᴜʟᴛ</b>\n\n❯ <code>{result}</code>",
-            parse_mode="html"
+            f"<b>┃ 🧠 ʀᴇsᴜʟᴛ</b>\n\n❯ <code>{result}</code>"
         )
+
     except:
         await message.reply_text(
-            "<b>┃ ⚠️ ɪɴᴠᴀʟɪᴅ ᴇxᴘʀᴇssɪᴏɴ</b>",
-            parse_mode="html"
+            "<b>┃ ⚠️ ɪɴᴠᴀʟɪᴅ ᴇxᴘʀᴇssɪᴏɴ</b>"
         )
 
 
-# ─── 🔍 SEARCH ───
+# ─────────────────────────────
+# 🔍 SEARCH COMMAND
+# ─────────────────────────────
 @app.on_message(filters.command("spg", prefixes=["/", "!", "."]))
 async def search(_, message: Message):
     if len(message.command) < 2:
         return await message.reply_text(
-            "<b>┃ ❗ ɢɪᴠᴇ sᴇᴀʀᴄʜ ǫᴜᴇʀʏ</b>",
-            parse_mode="html"
+            "<b>┃ ❗ ɢɪᴠᴇ sᴇᴀʀᴄʜ ǫᴜᴇʀʏ</b>"
         )
 
     query = message.text.split(maxsplit=1)[1]
@@ -111,7 +129,6 @@ async def search(_, message: Message):
 
     async with aiohttp.ClientSession() as session:
         url = f"https://content-customsearch.googleapis.com/customsearch/v1?cx=ec8db9e1f9e41e65e&q={query}&key=YOUR_API_KEY"
-
         async with session.get(url) as r:
             data = await r.json()
 
@@ -126,4 +143,4 @@ async def search(_, message: Message):
         link = re.sub(r"/\d", "", link)
         result += f"❯ <b>{title}</b>\n{link}\n\n"
 
-    await msg.edit(result, disable_web_page_preview=True, parse_mode="html")
+    await msg.edit(result, disable_web_page_preview=True)
