@@ -8,7 +8,7 @@ import asyncio
 from Oneforall import app
 
 # ─── 🎞️ PUT YOUR GIF FILE_ID HERE ───
-GIF_ID = "PASTE_YOUR_GIF_FILE_ID_HERE"
+GIF_ID = "AAMCBAADGQEDBzpBaeXSbXrq8paJiQABDgsc-MclFya3AAL9AwACINI8U1dYTVyrGV4KAQAHbQADOwQ"
 
 
 # ─── 🧪 GET GIF FILE_ID (TEMP - REMOVE AFTER USE) ───
