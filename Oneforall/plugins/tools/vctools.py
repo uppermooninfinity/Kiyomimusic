@@ -4,26 +4,23 @@ import aiohttp
 import re
 import math
 import asyncio
+import os
 
 from Oneforall import app
 
-# ─── 🎞️ PUT YOUR GIF FILE_ID HERE ───
-GIF_ID = "AAMCBAADGQEDBzpBaeXSbXrq8paJiQABDgsc-MclFya3AAL9AwACINI8U1dYTVyrGV4KAQAHbQADOwQ"
+
+# ─── 🎥 CATBOX VIDEO LINK ───
+CATBOX_URL = "https://files.catbox.moe/yourvideo.mp4"
+VIDEO_PATH = "vc_video.mp4"
 
 
-# ─── 🧪 GET GIF FILE_ID (TEMP - REMOVE AFTER USE) ───
-@app.on_message(filters.animation)
-async def get_file_id(_, message: Message):
-    print("GIF FILE ID:", message.animation.file_id)
-
-
-# ─── 🎥 VC START ───
+# ─── 🎙️ VC START ───
 @app.on_message(filters.video_chat_started)
 async def vc_started(_, message: Message):
     await message.reply_text(
         "<b>┃ 🎙️ ᴠᴄ ɪs ɴᴏᴡ ʟɪᴠᴇ</b>\n\n"
-        "❯ ᴛʜᴇ sᴛᴀɢᴇ ɪs sᴇᴛ… ᴊᴏɪɴ ᴛʜᴇ ᴠɪʙᴇ ⚡\n"
-        "❯ ᴅᴏɴ’ᴛ ᴍɪss ᴛʜᴇ ᴍᴏᴍᴇɴᴛ 🎧",
+        "❯ sᴛᴀɢᴇ ʀᴇᴀᴅʏ ⚡\n"
+        "❯ ᴊᴏɪɴ ᴛʜᴇ ᴠɪʙᴇ 🎧",
         parse_mode="html"
     )
 
@@ -33,62 +30,59 @@ async def vc_started(_, message: Message):
 async def vc_ended(_, message: Message):
     await message.reply_text(
         "<b>┃ 🕊️ ᴠᴄ ᴇɴᴅᴇᴅ</b>\n\n"
-        "❯ sɪʟᴇɴᴄᴇ ʀᴇᴛᴜʀɴs… 🎶\n"
-        "❯ ᴜɴᴛɪʟ ɴᴇxᴛ ᴛɪᴍᴇ ⚡",
+        "❯ sɪʟᴇɴᴄᴇ ʀᴇᴛᴜʀɴs 🎶\n"
+        "❯ sᴇᴇ ʏᴏᴜ sᴏᴏɴ ⚡",
         parse_mode="html"
     )
 
 
-# ─── 👥 VC INVITE WITH GIF + AUTO DELETE ───
+# ─── 👥 VC INVITE (CATBOX VIDEO) ───
 @app.on_message(filters.video_chat_members_invited)
-async def vc_invited(client: Client, message: Message):
+async def vc_invited(_, message: Message):
     user = message.from_user
 
     text = (
         "<b>┃ 💌 ɪɴᴠɪᴛᴇ ᴀʟᴇʀᴛ</b>\n\n"
-        f"❯ {user.mention} ɪs ᴄᴀʟʟɪɴɢ ʏᴏᴜ ᴛᴏ ᴛʜᴇ ᴠᴄ 🎙️\n\n"
-        "❯ ᴛʜᴇ ᴠɪʙᴇ ɪs sᴇᴛ… ᴅᴏɴ’ᴛ ᴍɪss ɪᴛ ⚡\n\n"
-        "<b>┃ ɪɴᴠɪᴛᴇᴅ ᴍᴇᴍʙᴇʀs</b>\n"
+        f"❯ {user.mention} ɪɴᴠɪᴛᴇᴅ ʏᴏᴜ 🎙️\n\n"
+        "<b>┃ ᴊᴏɪɴ ɴᴏᴡ ⚡</b>"
     )
 
-    for member in message.video_chat_members_invited.users:
-        try:
-            text += f"❯ <a href='tg://user?id={member.id}'>{member.first_name}</a>\n"
-        except:
-            pass
+    # ─── DOWNLOAD CATBOX VIDEO ───
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(CATBOX_URL) as resp:
+                if resp.status == 200:
+                    with open(VIDEO_PATH, "wb") as f:
+                        f.write(await resp.read())
+    except:
+        return await message.reply_text("❌ ᴠɪᴅᴇᴏ ʟᴏᴀᴅ ғᴀɪʟᴇᴅ")
 
-    text += "\n<b>┃ 🚀 ᴊᴏɪɴ ɴᴏᴡ ᴀɴᴅ ᴍᴀᴋᴇ ɪᴛ ʟɪᴛ</b>"
-
-    sent = await message.reply_animation(
-        animation=GIF_ID,
+    sent = await message.reply_video(
+        video=VIDEO_PATH,
         caption=text,
         parse_mode="html",
         reply_markup=InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(
-                        "👨‍💻 ᴅᴇᴠᴇʟᴏᴘᴇʀ",
-                        url="https://t.me/theinfinitynetwork"
-                    )
-                ]
-            ]
+            [[InlineKeyboardButton("👨‍💻 ᴅᴇᴠᴇʟᴏᴘᴇʀ", url="https://t.me/theinfinitynetwork")]]
         ),
     )
 
-    # ⏳ AUTO DELETE AFTER 15 SEC
     await asyncio.sleep(15)
+
     try:
         await sent.delete()
     except:
         pass
 
+    # cleanup
+    if os.path.exists(VIDEO_PATH):
+        os.remove(VIDEO_PATH)
 
-# ─── 🧮 SAFE MATH ───
+
+# ─── 🧮 MATH ───
 @app.on_message(filters.command("math"))
 async def calculate_math(_, message: Message):
     try:
         expression = message.text.split(maxsplit=1)[1]
-
         allowed_names = {k: v for k, v in math.__dict__.items() if not k.startswith("_")}
         result = eval(expression, {"__builtins__": {}}, allowed_names)
 
@@ -108,7 +102,7 @@ async def calculate_math(_, message: Message):
 async def search(_, message: Message):
     if len(message.command) < 2:
         return await message.reply_text(
-            "<b>┃ ❗ ᴘʟᴇᴀsᴇ ɢɪᴠᴇ sᴏᴍᴇᴛʜɪɴɢ ᴛᴏ sᴇᴀʀᴄʜ</b>",
+            "<b>┃ ❗ ɢɪᴠᴇ sᴇᴀʀᴄʜ ǫᴜᴇʀʏ</b>",
             parse_mode="html"
         )
 
@@ -116,7 +110,7 @@ async def search(_, message: Message):
     msg = await message.reply_text("🔎 sᴇᴀʀᴄʜɪɴɢ...")
 
     async with aiohttp.ClientSession() as session:
-        url = f"https://content-customsearch.googleapis.com/customsearch/v1?cx=ec8db9e1f9e41e65e&q={query}&key=YOUR_API_KEY&start=1"
+        url = f"https://content-customsearch.googleapis.com/customsearch/v1?cx=ec8db9e1f9e41e65e&q={query}&key=YOUR_API_KEY"
 
         async with session.get(url) as r:
             data = await r.json()
@@ -128,11 +122,8 @@ async def search(_, message: Message):
 
     for item in data["items"][:5]:
         title = item["title"]
-        link = item["link"]
-
-        link = link.split("?")[0]
+        link = item["link"].split("?")[0]
         link = re.sub(r"/\d", "", link)
-
         result += f"❯ <b>{title}</b>\n{link}\n\n"
 
     await msg.edit(result, disable_web_page_preview=True, parse_mode="html")
