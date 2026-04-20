@@ -369,7 +369,7 @@ class Call(PyTgCalls):
                                     url=f"https://t.me/{app.username}?startgroup=true",
                                 ),
                                 InlineKeyboardButton(
-                                    "⋞ ᴄʟᴏsє ⋟", callback_data="close_message"
+                                    "⋞ ᴄʟᴏsє ⋟", callback_data="close"
                                 ),
                             ]
                         ]
@@ -394,7 +394,7 @@ class Call(PyTgCalls):
                                     url=f"https://t.me/{app.username}?startgroup=true",
                                 ),
                                 InlineKeyboardButton(
-                                    "⋞ ᴄʟᴏsє ⋟", callback_data="close_message"
+                                    "⋞ ᴄʟᴏsє ⋟", callback_data="close"
                                 ),
                             ]
                         ]
@@ -406,9 +406,8 @@ class Call(PyTgCalls):
                     )
                 except:
                     pass
-                return await client.leave_group_call(chat_id)
-        except Exception:
-                return
+                return await client.leave_group_call(chat_id, close=False)
+            except Exception:
         else:
             queued = check[0]["file"]
             language = await get_lang(chat_id)
