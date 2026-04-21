@@ -1,5 +1,6 @@
 from pyrogram import filters
-from pyrogram.types import Message, ChatMemberStatus
+from pyrogram.types import Message
+from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import FloodWait, UserPrivacyRestricted, UserAlreadyParticipant
 import asyncio
 
