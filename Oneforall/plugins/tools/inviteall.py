@@ -1,14 +1,11 @@
 from pyrogram import filters
-from pyrogram.types import Message
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ChatMemberStatus, ParseMode
-from pyrogram.errors import FloodWait, UserPrivacyRestricted, UserAlreadyParticipant
+from pyrogram.errors import FloodWait
 import asyncio
 
 from Oneforall import app
-from Oneforall import userbot as us
-from Oneforall.core.userbot import assistants
 
-# 🔥 Image URL / file_id
 PHOTO_URL = "https://graph.org/file/9bd106140750787f62681-320f969c2b6662e42a.jpg"
 
 
@@ -21,62 +18,73 @@ async def invite_all(_, message: Message):
     member = await app.get_chat_member(chat_id, user_id)
     if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
         return await message.reply_text(
-            "<blockquote>❌ Only admins can use this command.</blockquote>",
+            "<blockquote>❌ Only admins can use this.</blockquote>",
             parse_mode=ParseMode.HTML
         )
 
-    # 🔍 Select assistant like sangmata
-    if 1 in assistants:
-        assistant = us.one
-    elif 2 in assistants:
-        assistant = us.two
-    elif 3 in assistants:
-        assistant = us.three
-    elif 4 in assistants:
-        assistant = us.four
-    elif 5 in assistants:
-        assistant = us.five
-    else:
+    # 🔍 Check VC
+    chat = await app.get_chat(chat_id)
+    if not chat.voice_chat_started:
         return await message.reply_text(
-            "<blockquote>❌ No assistant available.</blockquote>",
+            "<blockquote>❌ No active VC found.</blockquote>",
             parse_mode=ParseMode.HTML
         )
 
-    # 🚀 Start Message
-    msg = await message.reply_photo(
+    # 🔗 Invite link
+    invite_link = await app.export_chat_invite_link(chat_id)
+
+    buttons = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🎤 Join VC", url=invite_link)]]
+    )
+
+    # 🚀 Start message
+    status = await message.reply_photo(
         photo=PHOTO_URL,
-        caption="<blockquote>🚀 Inviting all members...\n⏳ Please wait...</blockquote>",
+        caption="<blockquote>🚀 Inviting members to VC...\n⏳ Please wait...</blockquote>",
         parse_mode=ParseMode.HTML
     )
 
-    success = 0
-    failed = 0
+    users = []
+    count = 0
 
-    # 🔄 Loop members
-    async for member in assistant.get_chat_members(chat_id):
-        try:
-            if member.user.is_bot:
-                continue
-
-            await assistant.add_chat_members(chat_id, member.user.id)
-
-            success += 1
-            await asyncio.sleep(2)
-
-        except UserAlreadyParticipant:
+    # 🔄 Collect users
+    async for member in app.get_chat_members(chat_id):
+        if member.user.is_bot:
+            continue
+        if member.user.is_deleted:
             continue
 
-        except UserPrivacyRestricted:
-            failed += 1
+        # mention format
+        if member.user.username:
+            users.append(f"@{member.user.username}")
+        else:
+            users.append(f"<a href='tg://user?id={member.user.id}'>user</a>")
+
+    # 📢 Send in batches (avoid flood)
+    batch_size = 5   # ⚡ safe limit (increase = risk)
+    delay = 5        # seconds
+
+    for i in range(0, len(users), batch_size):
+        batch = users[i:i + batch_size]
+
+        try:
+            await message.reply_text(
+                "<blockquote>🎤 Join VC now!\n\n" + " ".join(batch) + "</blockquote>",
+                parse_mode=ParseMode.HTML,
+                reply_markup=buttons,
+                disable_web_page_preview=True
+            )
+            count += len(batch)
+            await asyncio.sleep(delay)
 
         except FloodWait as e:
             await asyncio.sleep(e.value)
 
         except Exception:
-            failed += 1
+            continue
 
-    # ✅ Final Result
-    await msg.edit_caption(
-        f"<blockquote>✅ Invite Completed!\n\n✔️ Success: {success}\n❌ Failed: {failed}</blockquote>",
+    # ✅ Done
+    await status.edit_caption(
+        f"<blockquote>✅ VC Invite Sent!\n\n👥 Users Notified: {count}</blockquote>",
         parse_mode=ParseMode.HTML
-    )
+        )
