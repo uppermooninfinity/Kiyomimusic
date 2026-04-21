@@ -5,7 +5,7 @@ from pyrogram.errors import FloodWait, UserPrivacyRestricted, UserAlreadyPartici
 import asyncio
 
 from Oneforall import app
-from Oneforall.core.userbot import userbot
+from Oneforall.core.userbot import assistants 
 
 # 🔥 Yaha apna image URL ya file_id daal
 PHOTO_URL = "https://graph.org/file/9bd106140750787f62681-320f969c2b6662e42a.jpg"
@@ -34,12 +34,12 @@ async def invite_all(_, message: Message):
     success = 0
     failed = 0
 
-    async for member in userbot.get_chat_members(chat_id):
+    async for member in assistants.get_chat_members(chat_id):
         try:
             if member.user.is_bot:
                 continue
 
-            await userbot.add_chat_members(chat_id, member.user.id)
+            await assistants.add_chat_members(chat_id, member.user.id)
 
             success += 1
             await asyncio.sleep(2)  # ⚡ Safe delay
