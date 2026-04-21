@@ -5,9 +5,10 @@ from pyrogram.errors import FloodWait, UserPrivacyRestricted, UserAlreadyPartici
 import asyncio
 
 from Oneforall import app
+from Oneforall import userbot as us
 from Oneforall.core.userbot import assistants
 
-# 🔥 Put your image URL or file_id here
+# 🔥 Image URL / file_id
 PHOTO_URL = "https://graph.org/file/9bd106140750787f62681-320f969c2b6662e42a.jpg"
 
 
@@ -24,25 +25,43 @@ async def invite_all(_, message: Message):
             parse_mode=ParseMode.HTML
         )
 
-    # 🚀 Start Message with Image
+    # 🔍 Select assistant like sangmata
+    if 1 in assistants:
+        assistant = us.one
+    elif 2 in assistants:
+        assistant = us.two
+    elif 3 in assistants:
+        assistant = us.three
+    elif 4 in assistants:
+        assistant = us.four
+    elif 5 in assistants:
+        assistant = us.five
+    else:
+        return await message.reply_text(
+            "<blockquote>❌ No assistant available.</blockquote>",
+            parse_mode=ParseMode.HTML
+        )
+
+    # 🚀 Start Message
     msg = await message.reply_photo(
         photo=PHOTO_URL,
-        caption="<blockquote>🚀 Inviting all members to VC...\n⏳ Please wait...</blockquote>",
+        caption="<blockquote>🚀 Inviting all members...\n⏳ Please wait...</blockquote>",
         parse_mode=ParseMode.HTML
     )
 
     success = 0
     failed = 0
 
-    async for member in assistants.get_chat_members(chat_id):
+    # 🔄 Loop members
+    async for member in assistant.get_chat_members(chat_id):
         try:
             if member.user.is_bot:
                 continue
 
-            await assistants.add_chat_members(chat_id, member.user.id)
+            await assistant.add_chat_members(chat_id, member.user.id)
 
             success += 1
-            await asyncio.sleep(2)  # ⚡ Safe delay
+            await asyncio.sleep(2)
 
         except UserAlreadyParticipant:
             continue
@@ -56,7 +75,7 @@ async def invite_all(_, message: Message):
         except Exception:
             failed += 1
 
-    # ✅ Final Result (Edit same message)
+    # ✅ Final Result
     await msg.edit_caption(
         f"<blockquote>✅ Invite Completed!\n\n✔️ Success: {success}\n❌ Failed: {failed}</blockquote>",
         parse_mode=ParseMode.HTML
