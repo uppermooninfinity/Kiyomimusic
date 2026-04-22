@@ -7,16 +7,16 @@ import yt_dlp
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch 
-from EsproMusic.utils.formatters import time_to_seconds
+from Oneforall.utils.formatters import time_to_seconds
 import aiohttp
-from EsproMusic import LOGGER
+from Oneforall import LOGGER
 
 YOUR_API_URL = None
 FALLBACK_API_URL = "https://vercel.com/txkuzes-projects/admin-music-hub"
 
 async def load_api_url():
     global YOUR_API_URL
-    logger = LOGGER("EsproMusic.platforms.Youtube.py")
+    logger = LOGGER("Oneforall.platforms.Youtube.py")
     
     try:
         async with aiohttp.ClientSession() as session:
