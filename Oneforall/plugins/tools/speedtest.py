@@ -7,7 +7,7 @@ from pyrogram.types import Message
 from Oneforall import app
 from Oneforall.misc import SUDOERS
 
-SPEED_GIF = "CgACAgUAAxkBAAEdaG1p6H47oioRZS4hUIqfVsWzUCVRdwACgh4AAqqjcVUD4vp5nyew_DsE" 
+SPEED_VIDEO = ""
 
 
 def run_speedtest():
@@ -21,20 +21,23 @@ def run_speedtest():
 
 @app.on_message(filters.command(["speedtest", "spt"]) & SUDOERS)
 async def speedtest_function(client, message: Message):
+
     m = await message.reply_text("<blockquote>⚡ ʀᴜɴɴɪɴɢ ꜱᴘᴇᴇᴅ ᴛᴇꜱᴛ...</blockquote>")
 
     loop = asyncio.get_event_loop()
+
     try:
         result = await loop.run_in_executor(None, run_speedtest)
     except Exception as e:
         return await m.edit_text(f"<code>{e}</code>")
 
+    # Convert to Mbps
     download = round(result["download"] / 1_000_000, 2)
     upload = round(result["upload"] / 1_000_000, 2)
 
     caption = f"""
 <blockquote>
-⚡ ꜱᴘᴇᴇᴅ ᴛᴇꜱᴛ ʀᴇꜱᴜʟᴛꜱ ⚡
+⚡ ꜱᴘᴇᴇᴅ ᴛᴇꜱᴛ ʀᴇꜱᴜʟᴛ ⚡
 
 📡 ɪꜱᴘ: {result['client']['isp']}
 🌍 ᴄᴏᴜɴᴛʀʏ: {result['client']['country']}
@@ -48,10 +51,13 @@ async def speedtest_function(client, message: Message):
 ⬆️ ᴜᴘʟᴏᴀᴅ: {upload} Mbps
 </blockquote>
 """
-
-    await message.reply_animation(
-        animation=SPEED_GIF,
-        caption=caption
-    )
+    try:
+        await message.reply_video(
+            video=SPEED_VIDEO,
+            has_spoiler=True,
+            caption=caption,
+        )
+    except Exception:
+        await message.reply_text(caption)
 
     await m.delete()
