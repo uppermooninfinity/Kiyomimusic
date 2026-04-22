@@ -1,3 +1,4 @@
+# If You Are use This in another Repo Make Sure Change Module Name in Line Number 10 and 12 .
 import asyncio
 import os
 import re
@@ -5,16 +6,48 @@ from typing import Union
 import yt_dlp
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
-from py_yt import VideosSearch 
-from Oneforall.utils.formatters import time_to_seconds
+from youtubesearchpython.__future__ import VideosSearch 
+from EsproMusic.utils.formatters import time_to_seconds
 import aiohttp
-from Oneforall import LOGGER
+from EsproMusic import LOGGER
 
-YOUR_API_URL = "https://web-production-b37575.up.railway.app"
-FALLBACK_API_URL = "https://web-production-b37575.up.railway.app"
+YOUR_API_URL = None
+FALLBACK_API_URL = "https://vercel.com/txkuzes-projects/admin-music-hub"
+
+async def load_api_url():
+    global YOUR_API_URL
+    logger = LOGGER("EsproMusic.platforms.Youtube.py")
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get("https://pastebin.com/raw/rLsBhAQa", timeout=aiohttp.ClientTimeout(total=10)) as response:
+                if response.status == 200:
+                    content = await response.text()
+                    YOUR_API_URL = content.strip()
+                    logger.info("API URL loaded successfully")
+                else:
+                    YOUR_API_URL = FALLBACK_API_URL
+                    logger.info("Using fallback API URL")
+    except Exception:
+        YOUR_API_URL = FALLBACK_API_URL
+        logger.info("Using fallback API URL")
+
+try:
+    loop = asyncio.get_event_loop()
+    if loop.is_running():
+        asyncio.create_task(load_api_url())
+    else:
+        loop.run_until_complete(load_api_url())
+except RuntimeError:
+    pass
 
 async def download_song(link: str) -> str:
     global YOUR_API_URL
+    
+    if not YOUR_API_URL:
+        await load_api_url()
+        if not YOUR_API_URL:
+            YOUR_API_URL = FALLBACK_API_URL
     
     video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
 
@@ -67,6 +100,11 @@ async def download_song(link: str) -> str:
 
 async def download_video(link: str) -> str:
     global YOUR_API_URL
+    
+    if not YOUR_API_URL:
+        await load_api_url()
+        if not YOUR_API_URL:
+            YOUR_API_URL = FALLBACK_API_URL
     
     video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
 
@@ -214,6 +252,8 @@ class YouTubeAPI:
                 return 0, "Video download failed"
         except Exception as e:
             return 0, f"Video download error: {e}"
+
+    
 
     async def track(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
