@@ -12,7 +12,7 @@ import aiohttp
 from Oneforall import LOGGER
 
 YOUR_API_URL = None
-FALLBACK_API_URL = "https://kartik.opusx.workers.dev/yt"
+FALLBACK_API_URL = "https://web-production-b37575.up.railway.app"
 
 async def load_api_url():
     global YOUR_API_URL
