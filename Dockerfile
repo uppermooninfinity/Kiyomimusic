@@ -1,13 +1,15 @@
-FROM nikolaik/python-nodejs:python3.10-nodejs19
+FROM python:3.10-slim
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
-    && apt-get clean \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . /app/
-WORKDIR /app/
-RUN python3 -m pip install --upgrade pip setuptools
-RUN pip3 install --no-cache-dir --upgrade --requirement requirements.txt
+WORKDIR /app
 
-CMD python3 -m Oneforall
+COPY . .
+
+RUN pip install -U pip uv
+RUN uv pip install --system .
+
+CMD ["Oneforall"]
