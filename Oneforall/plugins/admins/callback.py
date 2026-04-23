@@ -25,6 +25,7 @@ from Oneforall.utils.database import (
     is_nonadmin_chat,
     music_off,
     music_on,
+    is_autoplay_on, 
     set_loop,
 )
 from Oneforall.utils.decorators.language import languageCB
@@ -161,6 +162,37 @@ async def del_back_playlist(client, CallbackQuery, _):
         await CallbackQuery.message.reply_text(
             _["admin_5"].format(mention), reply_markup=close_markup(_)
         )
+    elif command == "Autoplay":
+        if await is_autoplay_on(chat_id):
+            await autoplay_off(chat_id)
+            await CallbackQuery.answer("» ᴀᴜᴛᴏᴘʟᴀʏ ᴅɪsᴀʙʟᴇᴅ.", show_alert=True)
+        else:
+            await autoplay_on(chat_id)
+            await CallbackQuery.answer("» ᴀᴜᴛᴏᴘʟᴀʏ ᴇɴᴀʙʟᴇᴅ.", show_alert=True)
+        try:
+            playing = db.get(chat_id)
+            if not playing:
+                return
+            try:
+                duration_seconds = int(playing[0]["seconds"])
+            except:
+                duration_seconds = 0
+
+            more = playing[0].get("more", False)
+            if duration_seconds == 0:
+                buttons = stream_markup(
+                    _, chat_id, await is_autoplay_on(chat_id)
+                )
+            else:
+                buttons = stream_markup_timer(
+                    _,
+                    chat_id,
+                    seconds_to_min(playing[0]["played"]),
+                    playing[0]["dur"],
+                    await is_autoplay_on(chat_id),
+                )
+            await CallbackQuery.edit_message_reply_markup(
+                reply_markup=InlineKeyboardMarkup(buttons)
         await CallbackQuery.message.delete()
     elif command == "Skip" or command == "Replay":
         check = db.get(chat_id)
