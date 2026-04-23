@@ -6,7 +6,7 @@ from Oneforall import app
 from Oneforall.utils.formatters import time_to_seconds
 
 
-def track_markup(_, videoid, user_id, channel, fplay, autoplay):
+def track_markup(_, videoid, user_id, channel, fplay, autoplay: Union[bool, str]):
     buttons = [
         [
             InlineKeyboardButton(
@@ -34,7 +34,7 @@ def track_markup(_, videoid, user_id, channel, fplay, autoplay):
     return buttons
 
 
-def stream_markup_timer(_, vidid, chat_id, played, autoplay, dur):
+def stream_markup_timer(_, vidid, chat_id, played, autoplay: Union[bool, str], dur):
     played_sec = time_to_seconds(played)
     duration_sec = time_to_seconds(dur)
     percentage = (played_sec / duration_sec) * 100
@@ -85,7 +85,7 @@ def stream_markup_timer(_, vidid, chat_id, played, autoplay, dur):
     return buttons
 
 
-def stream_markup(_, videoid, autoplay, chat_id):
+def stream_markup(_, videoid, autoplay:Union[bool, str], chat_id):
     buttons = [
         [
             InlineKeyboardButton(text="▷", callback_data=f"ADMIN Resume|{chat_id}"),
@@ -106,7 +106,7 @@ def stream_markup(_, videoid, autoplay, chat_id):
     return buttons
 
 
-def playlist_markup(_, videoid, autoplay, user_id, ptype, channel, fplay):
+def playlist_markup(_, videoid, autoplay: Union[bool, str], user_id, ptype, channel, fplay):
     buttons = [
         [
             InlineKeyboardButton(
