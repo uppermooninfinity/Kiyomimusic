@@ -1,12 +1,13 @@
 import math
-from typing import Union 
-from pyrogram.types import InlineKeyboardButton
+from typing import Union
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from Oneforall import app
 from Oneforall.utils.formatters import time_to_seconds
+from Oneforall.utils.database import is_autoplay_on   # ✅ FIX
 
 
-def track_markup(_, videoid, user_id, channel, fplay, autoplay: Union[bool, str]):
+def track_markup(_, videoid, user_id, channel, fplay, chat_id, autoplay: Union[bool, str]):  # ✅ FIX chat_id added
     buttons = [
         [
             InlineKeyboardButton(
@@ -19,10 +20,16 @@ def track_markup(_, videoid, user_id, channel, fplay, autoplay: Union[bool, str]
             ),
         ],
         [
-            InlineKeyboardButton("⌯ᴜᴘᴘᴇʀᴍᴏᴏɴ ᴛᴜɴᴇs⌯", url="https://uppermooninfinity.jo3.org")
+            InlineKeyboardButton(
+                "⌯ᴜᴘᴘᴇʀᴍᴏᴏɴ ᴛᴜɴᴇs⌯",
+                url="https://uppermooninfinity.jo3.org"
+            )
         ],
         [
-            InlineKeyboardButton(text="🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏɴ" if autoplay else "🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏғғ",callback_data=f"ADMIN Autoplay|{chat_id}")
+            InlineKeyboardButton(
+                text="🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏɴ" if autoplay else "🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏғғ",
+                callback_data=f"ADMIN Autoplay|{chat_id}"
+            )
         ],
         [
             InlineKeyboardButton(
@@ -37,8 +44,10 @@ def track_markup(_, videoid, user_id, channel, fplay, autoplay: Union[bool, str]
 def stream_markup_timer(_, vidid, chat_id, played, autoplay: Union[bool, str], dur):
     played_sec = time_to_seconds(played)
     duration_sec = time_to_seconds(dur)
-    percentage = (played_sec / duration_sec) * 100
+
+    percentage = (played_sec / duration_sec) * 100 if duration_sec != 0 else 0  # ✅ safe division
     umm = math.floor(percentage)
+
     if 0 < umm <= 10:
         bar = "|♬—————————|"
     elif 10 < umm < 20:
@@ -59,7 +68,7 @@ def stream_markup_timer(_, vidid, chat_id, played, autoplay: Union[bool, str], d
         bar = "|————————♬—|"
     else:
         bar = "|—————————♬|"
-        
+
     buttons = [
         [
             InlineKeyboardButton(
@@ -73,20 +82,28 @@ def stream_markup_timer(_, vidid, chat_id, played, autoplay: Union[bool, str], d
             InlineKeyboardButton(text="▷", callback_data=f"ADMIN Resume|{chat_id}"),
             InlineKeyboardButton(text="↻", callback_data=f"ADMIN Replay|{chat_id}"),
             InlineKeyboardButton(text="▢", callback_data=f"ADMIN Stop|{chat_id}"),
-        ],        
-        [
-            InlineKeyboardButton("⌯ᴜᴘᴘᴇʀᴍᴏᴏɴ ᴛᴜɴᴇs⌯", url="https://uppermooninfinity.jo3.org")
         ],
         [
-            InlineKeyboardButton(text="🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏɴ" if autoplay else "🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏғғ",callback_data=f"ADMIN Autoplay|{chat_id}")
+            InlineKeyboardButton(
+                "⌯ᴜᴘᴘᴇʀᴍᴏᴏɴ ᴛᴜɴᴇs⌯",
+                url="https://uppermooninfinity.jo3.org"
+            )
         ],
-        [InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close")],
+        [
+            InlineKeyboardButton(
+                text="🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏɴ" if autoplay else "🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏғғ",
+                callback_data=f"ADMIN Autoplay|{chat_id}"
+            )
+        ],
+        [
+            InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close")
+        ],
     ]
     return InlineKeyboardMarkup(buttons)
 
 
 async def stream_markup(_, videoid, chat_id):
-    autoplay = await is_autoplay_on(chat_id)
+    autoplay = await is_autoplay_on(chat_id)  # ✅ now works
 
     buttons = [
         [
@@ -106,11 +123,12 @@ async def stream_markup(_, videoid, chat_id):
             InlineKeyboardButton("📥ᴘʀᴏᴍᴏ📥", url="https://t.me/cyber_github"),
             InlineKeyboardButton("💗ɢʀᴏᴜᴘ ᴄʜᴀᴛ💗", url="https://t.me/snowy_hometown"),
         ],
-        [InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close")],
+        [
+            InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close")
+        ],
     ]
     return InlineKeyboardMarkup(buttons)
-
-
+    
 def playlist_markup(_, videoid, user_id, ptype, channel, fplay):
     buttons = [
         [
