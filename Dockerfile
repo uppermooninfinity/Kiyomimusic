@@ -1,15 +1,23 @@
-FROM python:3.10-slim
+FROM nikolaik/python-nodejs:python3.10-nodejs19
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
+# Set working directory first
 WORKDIR /app
 
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy only requirements first (better caching)
+COPY requirements.txt .
+
+# Upgrade pip & install deps
+RUN pip install --no-cache-dir --upgrade pip setuptools \
+    && pip install --no-cache-dir -r requirements.txt
+
+# Now copy full project
 COPY . .
 
-RUN pip install -U pip uv
-RUN uv pip install --system .
-
-CMD ["Oneforall"]
+# Run your bot
+CMD ["python3", "-m", "Oneforall"]
