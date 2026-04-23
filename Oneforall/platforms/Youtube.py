@@ -17,7 +17,7 @@ FALLBACK_API_URL = "https://vercel.com/txkuzes-projects/admin-music-hub"
 async def load_api_url():
     global YOUR_API_URL
     logger = LOGGER("Oneforall.platforms.Youtube.py")
-    
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get("https://pastebin.com/raw/rLsBhAQa", timeout=aiohttp.ClientTimeout(total=10)) as response:
@@ -43,12 +43,12 @@ except RuntimeError:
 
 async def download_song(link: str) -> str:
     global YOUR_API_URL
-    
+
     if not YOUR_API_URL:
         await load_api_url()
         if not YOUR_API_URL:
             YOUR_API_URL = FALLBACK_API_URL
-    
+
     video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
 
     if not video_id or len(video_id) < 3:
@@ -64,7 +64,7 @@ async def download_song(link: str) -> str:
     try:
         async with aiohttp.ClientSession() as session:
             params = {"url": video_id, "type": "audio"}
-            
+
             async with session.get(
                 f"{YOUR_API_URL}/download",
                 params=params,
@@ -75,12 +75,12 @@ async def download_song(link: str) -> str:
 
                 data = await response.json()
                 download_token = data.get("download_token")
-                
+
                 if not download_token:
                     return None
-                
+
                 stream_url = f"{YOUR_API_URL}/stream/{video_id}?type=audio"
-                
+
                 async with session.get(
                     stream_url,
                     headers={"X-Download-Token": download_token},
@@ -88,11 +88,11 @@ async def download_song(link: str) -> str:
                 ) as file_response:
                     if file_response.status != 200:
                         return None
-                        
+
                     with open(file_path, "wb") as f:
                         async for chunk in file_response.content.iter_chunked(16384):
                             f.write(chunk)
-                    
+
                     return file_path
 
     except Exception:
@@ -100,12 +100,12 @@ async def download_song(link: str) -> str:
 
 async def download_video(link: str) -> str:
     global YOUR_API_URL
-    
+
     if not YOUR_API_URL:
         await load_api_url()
         if not YOUR_API_URL:
             YOUR_API_URL = FALLBACK_API_URL
-    
+
     video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
 
     if not video_id or len(video_id) < 3:
@@ -121,7 +121,7 @@ async def download_video(link: str) -> str:
     try:
         async with aiohttp.ClientSession() as session:
             params = {"url": video_id, "type": "video"}
-            
+
             async with session.get(
                 f"{YOUR_API_URL}/download",
                 params=params,
@@ -132,12 +132,12 @@ async def download_video(link: str) -> str:
 
                 data = await response.json()
                 download_token = data.get("download_token")
-                
+
                 if not download_token:
                     return None
-                
+
                 stream_url = f"{YOUR_API_URL}/stream/{video_id}?type=video"
-                
+
                 async with session.get(
                     stream_url,
                     headers={"X-Download-Token": download_token},
@@ -145,11 +145,11 @@ async def download_video(link: str) -> str:
                 ) as file_response:
                     if file_response.status != 200:
                         return None
-                        
+
                     with open(file_path, "wb") as f:
                         async for chunk in file_response.content.iter_chunked(16384):
                             f.write(chunk)
-                    
+
                     return file_path
 
     except Exception:
@@ -253,7 +253,7 @@ class YouTubeAPI:
         except Exception as e:
             return 0, f"Video download error: {e}"
 
-    
+
 
     async def track(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -339,7 +339,7 @@ class YouTubeAPI:
                 downloaded_file = await download_video(link)
             else:
                 downloaded_file = await download_song(link)
-            
+
             if downloaded_file:
                 return downloaded_file, True
             else:
