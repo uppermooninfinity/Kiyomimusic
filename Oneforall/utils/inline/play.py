@@ -82,7 +82,7 @@ def stream_markup_timer(_, vidid, chat_id, played, autoplay: Union[bool, str], d
         ],
         [InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close")],
     ]
-    return buttons
+    return InlineKeyboardMarkup(buttons)
 
 
 async def stream_markup(_, videoid, chat_id):
