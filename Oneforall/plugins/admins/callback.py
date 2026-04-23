@@ -194,8 +194,8 @@ async def del_back_playlist(client, CallbackQuery, _):
             await CallbackQuery.edit_message_reply_markup(
                 reply_markup=InlineKeyboardMarkup(buttons)
                 )
-            except:
-                pass
+        except
+        pass
         await CallbackQuery.message.delete()
     elif command == "Skip" or command == "Replay":
         check = db.get(chat_id)
