@@ -37,4 +37,5 @@ bing_image_downloader
 gpytranslate
 git+https://github.com/KurimuzonAkuma/pyrogram.git@v2.1.23
 git+https://github.com/yt-dlp/yt-dlp.git
+kurigram
 py-yt-search==0.6.2
