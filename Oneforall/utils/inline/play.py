@@ -85,7 +85,9 @@ def stream_markup_timer(_, vidid, chat_id, played, autoplay: Union[bool, str], d
     return buttons
 
 
-def stream_markup(_, videoid, autoplay:Union[bool, str], chat_id):
+async def stream_markup(_, videoid, chat_id):
+    autoplay = await is_autoplay_on(chat_id)
+
     buttons = [
         [
             InlineKeyboardButton(text="▷", callback_data=f"ADMIN Resume|{chat_id}"),
@@ -95,7 +97,10 @@ def stream_markup(_, videoid, autoplay:Union[bool, str], chat_id):
             InlineKeyboardButton(text="▢", callback_data=f"ADMIN Stop|{chat_id}"),
         ],
         [
-            InlineKeyboardButton(text="🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏɴ" if autoplay else "🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏғғ",callback_data=f"ADMIN Autoplay|{chat_id}")
+            InlineKeyboardButton(
+                text="🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏɴ" if autoplay else "🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏғғ",
+                callback_data=f"ADMIN Autoplay|{chat_id}"
+            )
         ],
         [
             InlineKeyboardButton("📥ᴘʀᴏᴍᴏ📥", url="https://t.me/cyber_github"),
@@ -103,10 +108,10 @@ def stream_markup(_, videoid, autoplay:Union[bool, str], chat_id):
         ],
         [InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close")],
     ]
-    return buttons
+    return InlineKeyboardMarkup(buttons)
 
 
-def playlist_markup(_, videoid, autoplay: Union[bool, str], user_id, ptype, channel, fplay):
+def playlist_markup(_, videoid, user_id, ptype, channel, fplay):
     buttons = [
         [
             InlineKeyboardButton(
