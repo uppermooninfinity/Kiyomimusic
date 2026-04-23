@@ -1,5 +1,5 @@
 import math
-
+from typing import Union 
 from pyrogram.types import InlineKeyboardButton
 
 from Oneforall import app
@@ -93,6 +93,9 @@ def stream_markup(_, videoid, chat_id):
             InlineKeyboardButton(text="↻", callback_data=f"ADMIN Replay|{chat_id}"),
             InlineKeyboardButton(text="‣‣I", callback_data=f"ADMIN Skip|{chat_id}"),
             InlineKeyboardButton(text="▢", callback_data=f"ADMIN Stop|{chat_id}"),
+        ],
+        [
+            InlineKeyboardButton(text="🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏɴ" if autoplay else "🔄 ᴀᴜᴛᴏᴘʟᴀʏ : ᴏғғ",callback_data=f"ADMIN Autoplay|{chat_id}")
         ],
         [
             InlineKeyboardButton("📥ᴘʀᴏᴍᴏ📥", url="https://t.me/cyber_github"),
