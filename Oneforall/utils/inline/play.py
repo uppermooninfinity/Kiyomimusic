@@ -1,5 +1,5 @@
 import math
-from pyrogram.types import ButtonStyle
+from pyrogram.enums import ButtonStyle
 
 from pyrogram.types import InlineKeyboardButton
 
