@@ -22,8 +22,8 @@ def skip_caption(app, videoid, title, dur, user):
 ┃ 👤 Requested by: {user}
 ╰━━━━━━━━━━━━━━━━━━━╯
 
-✨ *Now Playing Next Track...*
-🔗 *Powered by: @theteaminfinitynetwork*
+✨ **Now Playing Next Track...**
+🔗 **Powered by: @theteaminfinitynetwork**
 """
 
 
@@ -129,7 +129,7 @@ async def skip(cli, message: Message, _, chat_id):
             return await message.reply_text(_["call_6"])
 
         # ✅ FIXED
-        button = await stream_markup2(_, chat_id)
+        button = stream_markup2(_, chat_id)
 
         run = await message.reply_photo(
             photo=PHOTO_URL,
