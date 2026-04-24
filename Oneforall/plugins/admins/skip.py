@@ -11,7 +11,7 @@ from Oneforall.utils.decorators import AdminRightsCheck
 from Oneforall.utils.inline import close_markup, stream_markup, stream_markup2
 from Oneforall.utils.stream.autoclear import auto_clean
 
-PHOTO_URL = "https://graph.org/file/9bd106140750787f62681-320f969c2b6662e42a.jpg"
+PHOTO_URL = "https://graph.org/file/98d40be80fc3a1c31264c-394c638ae0ece33496.jpg"
 
 
 def skip_caption(app, videoid, title, dur, user):
@@ -133,6 +133,7 @@ async def skip(cli, message: Message, _, chat_id):
 
         run = await message.reply_photo(
             photo=PHOTO_URL,
+            has_spoiler=True,
             caption=skip_caption(app, videoid, title, check[0]["dur"], user),
             reply_markup=button,  # ❌ no InlineKeyboardMarkup wrap
         )
