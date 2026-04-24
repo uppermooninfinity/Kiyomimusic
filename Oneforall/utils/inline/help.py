@@ -71,9 +71,9 @@ def help_pannel(_, START: Union[bool, int] = None):
 
     # 🔻 Navigation
     nav = [
-        InlineKeyboardButton("⏮", callback_data="mbot_cb"),
+        InlineKeyboardButton("⏮", callback_data=f"managebot123 settings_back_helper"),
         InlineKeyboardButton("⚙️", callback_data="settingsback_helper"),
-        InlineKeyboardButton("⏭", callback_data="mbot_cb"),
+        InlineKeyboardButton("⏭", callback_data=f"managebot123 settings_back_helper"),
     ]
 
     close_btn = [InlineKeyboardButton("❌ Close", callback_data="close")]
