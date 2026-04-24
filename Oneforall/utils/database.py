@@ -1092,28 +1092,14 @@ async def get_thumb_mode(chat_id: int):
 
     return data.get("thumb", True)
 
+async def is_autoplay_on(chat_id: int) -> bool:
+    mode = await autoplaydb.get(chat_id)
+    return bool(mode)
+
+
 async def autoplay_on(chat_id: int):
-    autoplay[chat_id] = True
-    user = await autoplaydb.find_one({"chat_id": chat_id})
-    if not user:
-        return await autoplaydb.insert_one({"chat_id": chat_id})
+    await autoplaydb.set(chat_id, True)
 
 
 async def autoplay_off(chat_id: int):
-    autoplay[chat_id] = False
-    user = await autoplaydb.find_one({"chat_id": chat_id})
-    if user:
-        return await autoplaydb.delete_one({"chat_id": chat_id})
-
-async def is_autoplay_on(chat_id: int) -> bool:
-    mode = autoplay.get(chat_id)
-    if mode is None:
-        user = await autoplaydb.find_one({"chat_id": chat_id})
-        if not user:
-            autoplay[chat_id] = False
-            return False
-        autoplay[chat_id] = True
-        return True
-    return mode
-
-
+    await autoplaydb.set(chat_id, False)
