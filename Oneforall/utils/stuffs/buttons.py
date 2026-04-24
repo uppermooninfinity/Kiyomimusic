@@ -74,7 +74,6 @@ class BUTTONS(object):
         # 🔻 Navigation
         nav = [
             InlineKeyboardButton("◁", callback_data="settings_back_helper"),
-            InlineKeyboardButton("↻", callback_data="mbot_cb"),
             InlineKeyboardButton("▷", callback_data="settings_back_helper"),
         ]
 
