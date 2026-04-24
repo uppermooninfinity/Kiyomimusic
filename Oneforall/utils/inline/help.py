@@ -1,154 +1,107 @@
 from typing import Union
-
+import random
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-
 from Oneforall import app
 
 
+PATTERNS = [
+    [3, 2, 1],
+    [2, 3, 1],
+    [1, 3, 2],
+]
+
+
+def chunk_buttons(btns, pattern):
+    rows = []
+    i = 0
+    p = 0
+
+    while i < len(btns):
+        size = pattern[p % len(pattern)]
+        rows.append(btns[i:i + size])
+        i += size
+        p += 1
+
+    return rows
+
+
 def help_pannel(_, START: Union[bool, int] = None):
-    first = [InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data=f"close")]
-    second = [
-        InlineKeyboardButton(
-            text=_["BACK_PAGE"],
-            callback_data=f"mbot_cb",
-        ),
-        InlineKeyboardButton(
-            text=_["BACK_BUTTON"],
-            callback_data=f"settingsback_helper",
-        ),
-        InlineKeyboardButton(
-            text=_["NEXT_PAGE"],
-            callback_data=f"mbot_cb",
-        ),
+    # 🔒 stable randomness per session
+    random.seed(42)
+
+    # 🔹 All buttons list
+    raw_buttons = [
+        ("H_B_1", "hb1"), ("H_B_2", "hb2"), ("H_B_3", "hb3"),
+        ("H_B_4", "hb4"), ("H_B_5", "hb5"), ("H_B_6", "hb6"),
+        ("H_B_7", "hb7"), ("H_B_8", "hb8"), ("H_B_9", "hb9"),
+        ("H_B_10", "hb10"), ("H_B_11", "hb11"), ("H_B_12", "hb12"),
+        ("H_B_13", "hb13"), ("H_B_14", "hb14"),
+        ("🎮 Fun Game", "hb21"), ("📢 Fsub", "hb20"),
     ]
-    mark = second if START else first
-    upl = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(
-                    text=_["H_B_1"],
-                    callback_data="help_callback hb1",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_2"],
-                    callback_data="help_callback hb2",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_3"],
-                    callback_data="help_callback hb3",
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text=_["H_B_4"],
-                    callback_data="help_callback hb4",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_5"],
-                    callback_data="help_callback hb5",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_6"],
-                    callback_data="help_callback hb6",
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text=_["H_B_7"],
-                    callback_data="help_callback hb7",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_8"],
-                    callback_data="help_callback hb8",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_9"],
-                    callback_data="help_callback hb9",
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text=_["H_B_10"],
-                    callback_data="help_callback hb10",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_11"],
-                    callback_data="help_callback hb11",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_12"],
-                    callback_data="help_callback hb12",
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text=_["H_B_13"],
-                    callback_data="help_callback hb13",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_14"],
-                    callback_data="help_callback hb14",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_15"],
-                    callback_data="help_callback hb15",
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text=_["H_B_26"],
-                    callback_data="help_callback hb17",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_25"],
-                    callback_data="help_callback hb16",
-                ),
-                InlineKeyboardButton(
-                    "fun game",
-                    callback_data="help_callback hb21",
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text=_["H_B_27"],
-                    callback_data="help_callback hb18",
-                ),
-                InlineKeyboardButton(
-                    text=_["H_B_28"],
-                    callback_data="help_callback hb19",
-                ),
-                InlineKeyboardButton(
-                    "fsub",
-                    callback_data="help_callback hb20",
-                ),
-            ],
-            mark,
-        ]
-    )
-    return upl
+
+    # 🔀 shuffle
+    random.shuffle(raw_buttons)
+
+    # ⭐ pick highlight
+    highlight = raw_buttons.pop(0)
+
+    highlight_btn = [
+        InlineKeyboardButton(
+            text=f"✨ {_ [highlight[0]] if highlight[0].startswith('H_') else highlight[0]}",
+            callback_data=f"help_callback {highlight[1]}",
+        )
+    ]
+
+    # 🔹 convert remaining buttons
+    buttons = [
+        InlineKeyboardButton(
+            text=_[name] if name.startswith("H_") else name,
+            callback_data=f"help_callback {cb}",
+        )
+        for name, cb in raw_buttons
+    ]
+
+    # 🎲 random pattern
+    pattern = random.choice(PATTERNS)
+
+    rows = chunk_buttons(buttons, pattern)
+
+    # 🔥 inject highlight at top
+    layout = [highlight_btn] + rows
+
+    # 🔻 Navigation
+    nav = [
+        InlineKeyboardButton("⏮", callback_data="mbot_cb"),
+        InlineKeyboardButton("⚙️", callback_data="settingsback_helper"),
+        InlineKeyboardButton("⏭", callback_data="mbot_cb"),
+    ]
+
+    close_btn = [InlineKeyboardButton("❌ Close", callback_data="close")]
+
+    layout.append(nav if START else close_btn)
+
+    return InlineKeyboardMarkup(layout)
 
 
 def help_back_markup(_):
-    upl = InlineKeyboardMarkup(
+    return InlineKeyboardMarkup(
         [
             [
                 InlineKeyboardButton(
-                    text=_["BACK_BUTTON"],
-                    callback_data=f"settings_back_helper",
-                ),
+                    text="🔙 " + _["BACK_BUTTON"],
+                    callback_data="settings_back_helper",
+                )
             ]
         ]
     )
-    return upl
 
 
 def private_help_panel(_):
-    buttons = [
+    return [
         [
             InlineKeyboardButton(
-                text=_["S_B_4"],
+                text="✨ " + _["S_B_4"],
                 url=f"https://t.me/{app.username}?start=help",
-            ),
-        ],
+            )
+        ]
     ]
-    return buttons
