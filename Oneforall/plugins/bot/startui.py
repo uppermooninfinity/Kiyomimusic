@@ -144,9 +144,8 @@ async def start_pm(client, message: Message, _):
             )
 
     # NORMAL START
-    await message.reply_video(
-        video=config.START_VIDEO_URL,
-        caption=f"❄️ <b>Snowy welcomes you!</b>\n\n"
+    await message.reply_text(
+        text=f"❄️ <b>Snowy welcomes you!</b>\n\n"
         + _["start_2"].format(message.from_user.mention, app.mention),
         reply_markup=InlineKeyboardMarkup(private_panel(_)),
     )
