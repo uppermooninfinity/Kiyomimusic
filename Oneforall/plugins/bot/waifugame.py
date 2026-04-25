@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from pyrogram import filters
 from pyrogram.types import Message, InlineQuery, InlineQueryResultPhoto
-from config import app
+from Oneforall import app
 from pymongo import MongoClient
 
 mongo = MongoClient("mongodb://localhost:27017/")
