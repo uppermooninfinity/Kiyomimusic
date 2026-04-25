@@ -5,8 +5,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from Oneforall import app
-from config import MONGO_DB_URI, OTHER_LOGS, BOT_USERNAME
-from Oneforall.utils.database import get_auth_users
+from config import MONGO_URL, OTHER_LOGS, BOT_USERNAME
 
 # ----------------- Mongo -----------------
 mongo = AsyncIOMotorClient(MONGO_URL)
@@ -39,7 +38,7 @@ async def set_enabled(chat_id: int, status: bool):
         upsert=True
     )
 
-# ----------------- Admin Fast Check -----------------
+# ----------------- Admin Check (FAST) -----------------
 async def is_admin(client, chat_id, user_id):
     try:
         member = await client.get_chat_member(chat_id, user_id)
@@ -91,11 +90,6 @@ async def bio_filter(client, message):
 
     # Admin bypass
     if await is_admin(client, chat_id, user.id):
-        return
-
-    # Auth users bypass
-    auth = await get_auth_users(chat_id)
-    if user.id in auth.get("auth_users", []):
         return
 
     # ----------------- Get Bio -----------------
