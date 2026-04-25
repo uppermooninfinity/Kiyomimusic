@@ -5,7 +5,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from Oneforall import app
-from config import MONGO_URL, OTHER_LOGS, BOT_USERNAME
+from config import MONGO_DB_URI, OTHER_LOGS, BOT_USERNAME
 
 # ----------------- Mongo -----------------
 mongo = AsyncIOMotorClient(MONGO_URL)
