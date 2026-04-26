@@ -10,7 +10,6 @@ from pyrogram.enums import ChatMemberStatus
 from pytgcalls import PyTgCalls
 from pytgcalls.exceptions import AlreadyJoinedError
 from pytgcalls.types import MediaStream, AudioQuality
-from pytgcalls.types.stream import StreamAudioEnded
 
 from Oneforall import app
 from config import STRING1 as STRING_SESSION
@@ -70,15 +69,19 @@ async def play_stream(chat_id, msg=None):
 
     data = QUEUE[chat_id][0]
 
-    file, ok = await yt.download(data["link"], msg)
+    link = data.get("link")
+    if not link:
+        QUEUE[chat_id].pop(0)
+        return await play_stream(chat_id)
 
-    if not ok:
-        return await app.send_message(chat_id, "❌ failed to get audio")
+    file, ok = await yt.download(link, msg)
 
-    stream = MediaStream(
-        file,
-        audio_parameters=AudioQuality.HIGH
-    )
+    # ❌ fail → skip auto
+    if not ok or not file:
+        QUEUE[chat_id].pop(0)
+        return await play_stream(chat_id)
+
+    stream = MediaStream(file, audio_parameters=AudioQuality.HIGH)
 
     try:
         await call.join_group_call(chat_id, stream)
@@ -86,6 +89,10 @@ async def play_stream(chat_id, msg=None):
         await call.change_stream(chat_id, stream)
 
     PLAYING[chat_id] = data
+
+    # ⚡ preload next song
+    if len(QUEUE[chat_id]) > 1:
+        asyncio.create_task(yt.download(QUEUE[chat_id][1]["link"]))
 
 
 # ---------------- PLAY ----------------
@@ -105,8 +112,12 @@ async def play(_, message: Message):
 
     try:
         data, _ = await yt.track(query)
-    except Exception as e:
-        return await msg.edit_text(f"❌ error: {e}")
+
+        if not data or not data.get("link"):
+            raise Exception()
+
+    except:
+        return await msg.edit_text("❌ no results found")
 
     chat_id = message.chat.id
 
@@ -247,17 +258,21 @@ async def stream_end(_, update):
 
     elif AUTOPLAY.get(chat_id):
 
-        results = await yt.search("trending songs", limit=1)
+        results = await yt.search("trending songs", limit=5)
 
         if not results:
             return await call.leave_group_call(chat_id)
 
         r = results[0]
 
+        link = r.get("webpage_url") or r.get("url")
+        if not link:
+            return await call.leave_group_call(chat_id)
+
         data = {
-            "title": r.get("title"),
+            "title": r.get("title", "Unknown"),
             "duration_min": r.get("duration"),
-            "link": r.get("webpage_url") or r.get("url"),
+            "link": link,
             "thumb": r.get("thumbnail") or (
                 r.get("thumbnails")[0]["url"] if r.get("thumbnails") else None
             )
