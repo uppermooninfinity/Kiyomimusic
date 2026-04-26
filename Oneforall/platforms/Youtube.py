@@ -39,7 +39,7 @@ async def load_api_url():
             ) as response:
                 if response.status == 200:
                     YOUR_API_URL = (await response.text()).strip()
-                    logger.info("API URL loaded successfully")
+                    logger.info("API ok loaded successfully")
                 else:
                     YOUR_API_URL = FALLBACK_API_URL
     except Exception:
