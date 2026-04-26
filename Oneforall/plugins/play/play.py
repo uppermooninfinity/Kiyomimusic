@@ -5,12 +5,14 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, 
 from pyrogram.enums import ChatMemberStatus
 
 from pytgcalls import PyTgCalls
-from pytgcalls.types.input_stream import AudioPiped  # ✅ old version import
+from pytgcalls.exceptions import AlreadyJoinedError
+from pytgcalls.types import MediaStream, AudioQuality
+from pytgcalls.types.stream import StreamAudioEnded
 
-from Oneforall import app
+from AloneRobot import app
 from config import API_ID, API_HASH, STRING_SESSION, BANNED_USERS
 
-from Oneforall.platforms.Youtube import YouTubeAPI
+from AloneRobot.modules.youtube import YouTubeAPI
 
 yt = YouTubeAPI()
 
@@ -59,6 +61,8 @@ async def is_admin(chat_id, user_id):
     ]
 
 
+# ---------------- PLAY STREAM ----------------
+
 async def play_stream(chat_id, mystic=None):
 
     if chat_id not in QUEUE or not QUEUE[chat_id]:
@@ -71,13 +75,20 @@ async def play_stream(chat_id, mystic=None):
     if not ok:
         return await app.send_message(chat_id, "❌ download failed")
 
+    stream = MediaStream(
+        file,
+        audio_parameters=AudioQuality.HIGH
+    )
+
     try:
-        await call.join_group_call(chat_id, AudioPiped(file))
-    except:
-        await call.change_stream(chat_id, AudioPiped(file))
+        await call.join_group_call(chat_id, stream)
+    except AlreadyJoinedError:
+        await call.change_stream(chat_id, stream)
 
     PLAYING[chat_id] = data
 
+
+# ---------------- PLAY COMMAND ----------------
 
 @app.on_message(cmd_filter("play") & filters.group & ~BANNED_USERS)
 async def play(_, message: Message):
@@ -122,6 +133,8 @@ async def play(_, message: Message):
     )
 
 
+# ---------------- SKIP ----------------
+
 @app.on_message(cmd_filter("skip") & filters.group)
 async def skip(_, message: Message):
     if not await is_admin(message.chat.id, message.from_user.id):
@@ -138,6 +151,8 @@ async def skip(_, message: Message):
     await message.reply_text("⏭ skipped")
 
 
+# ---------------- STOP ----------------
+
 @app.on_message(cmd_filter("stop") & filters.group)
 async def stop(_, message: Message):
     if not await is_admin(message.chat.id, message.from_user.id):
@@ -150,6 +165,8 @@ async def stop(_, message: Message):
 
     await message.reply_text("⏹ stopped")
 
+
+# ---------------- END ----------------
 
 @app.on_message(cmd_filter("end") & filters.group)
 async def end(_, message: Message):
@@ -164,6 +181,8 @@ async def end(_, message: Message):
     await message.reply_text("⏹ queue ended")
 
 
+# ---------------- PAUSE ----------------
+
 @app.on_message(cmd_filter("pause") & filters.group)
 async def pause(_, message: Message):
     if not await is_admin(message.chat.id, message.from_user.id):
@@ -173,6 +192,8 @@ async def pause(_, message: Message):
     await message.reply_text("⏸ paused")
 
 
+# ---------------- RESUME ----------------
+
 @app.on_message(cmd_filter("resume") & filters.group)
 async def resume(_, message: Message):
     if not await is_admin(message.chat.id, message.from_user.id):
@@ -181,6 +202,8 @@ async def resume(_, message: Message):
     await call.resume_stream(message.chat.id)
     await message.reply_text("▶️ resumed")
 
+
+# ---------------- RELOAD ----------------
 
 @app.on_message(cmd_filter("reload") & filters.group)
 async def reload(_, message: Message):
@@ -242,8 +265,12 @@ async def cb_autoplay(_, q: CallbackQuery):
 
 # ---------------- STREAM END ----------------
 
-@call.on_stream_end()
+@call.on_update()
 async def stream_end(_, update):
+
+    if not isinstance(update, StreamAudioEnded):
+        return
+
     chat_id = update.chat_id
 
     if chat_id in QUEUE and QUEUE[chat_id]:
