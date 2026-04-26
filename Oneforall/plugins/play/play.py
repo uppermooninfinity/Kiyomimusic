@@ -1,7 +1,10 @@
 import asyncio
 
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, CallbackQuery
+from pyrogram.types import (
+    Message, InlineKeyboardMarkup,
+    InlineKeyboardButton, InputMediaPhoto, CallbackQuery
+)
 from pyrogram.enums import ChatMemberStatus
 
 from pytgcalls import PyTgCalls
@@ -9,11 +12,9 @@ from pytgcalls.exceptions import AlreadyJoinedError
 from pytgcalls.types import MediaStream, AudioQuality
 from pytgcalls.types.stream import StreamAudioEnded
 
-from Oneforall import app
-from config import API_ID, API_HASH, BANNED_USERS
-from config import STRING1 as STRING_SESSION
-
-from Oneforall.platforms.Youtube import YouTubeAPI
+from AloneRobot import app
+from config import API_ID, API_HASH, STRING_SESSION, BANNED_USERS
+from AloneRobot.modules.youtube import YouTubeAPI
 
 yt = YouTubeAPI()
 
@@ -30,28 +31,25 @@ QUEUE = {}
 AUTOPLAY = {}
 PLAYING = {}
 
-CMD = ["play", "skip", "stop", "end", "pause", "resume", "reload"]
 PREFIX = ["/", "!", "."]
 
 
-def cmd_filter(cmd):
+def cmd(cmd):
     return filters.command(cmd, prefixes=PREFIX)
 
 
 def buttons(chat_id):
-    return InlineKeyboardMarkup(
+    return InlineKeyboardMarkup([
         [
-            [
-                InlineKeyboardButton("⏸", callback_data=f"pause|{chat_id}"),
-                InlineKeyboardButton("▶️", callback_data=f"resume|{chat_id}"),
-                InlineKeyboardButton("⏭", callback_data=f"skip|{chat_id}"),
-                InlineKeyboardButton("⏹", callback_data=f"stop|{chat_id}")
-            ],
-            [
-                InlineKeyboardButton("🔁 autoplay", callback_data=f"autoplay|{chat_id}")
-            ]
+            InlineKeyboardButton("⏸", callback_data=f"pause|{chat_id}"),
+            InlineKeyboardButton("▶️", callback_data=f"resume|{chat_id}"),
+            InlineKeyboardButton("⏭", callback_data=f"skip|{chat_id}"),
+            InlineKeyboardButton("⏹", callback_data=f"stop|{chat_id}")
+        ],
+        [
+            InlineKeyboardButton("🔁 autoplay", callback_data=f"autoplay|{chat_id}")
         ]
-    )
+    ])
 
 
 async def is_admin(chat_id, user_id):
@@ -62,19 +60,19 @@ async def is_admin(chat_id, user_id):
     ]
 
 
-# ---------------- PLAY STREAM ----------------
+# ---------------- STREAM ----------------
 
-async def play_stream(chat_id, mystic=None):
+async def play_stream(chat_id, msg=None):
 
     if chat_id not in QUEUE or not QUEUE[chat_id]:
         return
 
     data = QUEUE[chat_id][0]
 
-    file, ok = await yt.download(data["link"], mystic)
+    file, ok = await yt.download(data["link"], msg)
 
     if not ok:
-        return await app.send_message(chat_id, "❌ download failed")
+        return await app.send_message(chat_id, "❌ failed to get audio")
 
     stream = MediaStream(
         file,
@@ -89,9 +87,9 @@ async def play_stream(chat_id, mystic=None):
     PLAYING[chat_id] = data
 
 
-# ---------------- PLAY COMMAND ----------------
+# ---------------- PLAY ----------------
 
-@app.on_message(cmd_filter("play") & filters.group & ~BANNED_USERS)
+@app.on_message(cmd("play") & filters.group & ~BANNED_USERS)
 async def play(_, message: Message):
 
     if len(message.command) < 2:
@@ -105,14 +103,13 @@ async def play(_, message: Message):
     )
 
     try:
-        data, vidid = await yt.track(query)
-    except:
-        return await msg.edit_text("❌ error")
+        data, _ = await yt.track(query)
+    except Exception as e:
+        return await msg.edit_text(f"❌ error: {e}")
 
     chat_id = message.chat.id
 
     QUEUE.setdefault(chat_id, []).append(data)
-
     pos = len(QUEUE[chat_id])
 
     if pos == 1:
@@ -136,7 +133,7 @@ async def play(_, message: Message):
 
 # ---------------- SKIP ----------------
 
-@app.on_message(cmd_filter("skip") & filters.group)
+@app.on_message(cmd("skip") & filters.group)
 async def skip(_, message: Message):
     if not await is_admin(message.chat.id, message.from_user.id):
         return await message.reply_text("❌ admins only")
@@ -154,7 +151,7 @@ async def skip(_, message: Message):
 
 # ---------------- STOP ----------------
 
-@app.on_message(cmd_filter("stop") & filters.group)
+@app.on_message(cmd("stop") & filters.group)
 async def stop(_, message: Message):
     if not await is_admin(message.chat.id, message.from_user.id):
         return await message.reply_text("❌ admins only")
@@ -167,24 +164,9 @@ async def stop(_, message: Message):
     await message.reply_text("⏹ stopped")
 
 
-# ---------------- END ----------------
+# ---------------- PAUSE / RESUME ----------------
 
-@app.on_message(cmd_filter("end") & filters.group)
-async def end(_, message: Message):
-    if not await is_admin(message.chat.id, message.from_user.id):
-        return await message.reply_text("❌ admins only")
-
-    chat_id = message.chat.id
-
-    QUEUE[chat_id] = []
-    await call.leave_group_call(chat_id)
-
-    await message.reply_text("⏹ queue ended")
-
-
-# ---------------- PAUSE ----------------
-
-@app.on_message(cmd_filter("pause") & filters.group)
+@app.on_message(cmd("pause") & filters.group)
 async def pause(_, message: Message):
     if not await is_admin(message.chat.id, message.from_user.id):
         return await message.reply_text("❌ admins only")
@@ -193,29 +175,13 @@ async def pause(_, message: Message):
     await message.reply_text("⏸ paused")
 
 
-# ---------------- RESUME ----------------
-
-@app.on_message(cmd_filter("resume") & filters.group)
+@app.on_message(cmd("resume") & filters.group)
 async def resume(_, message: Message):
     if not await is_admin(message.chat.id, message.from_user.id):
         return await message.reply_text("❌ admins only")
 
     await call.resume_stream(message.chat.id)
     await message.reply_text("▶️ resumed")
-
-
-# ---------------- RELOAD ----------------
-
-@app.on_message(cmd_filter("reload") & filters.group)
-async def reload(_, message: Message):
-    if not await is_admin(message.chat.id, message.from_user.id):
-        return await message.reply_text("❌ admins only")
-
-    QUEUE.clear()
-    AUTOPLAY.clear()
-    PLAYING.clear()
-
-    await message.reply_text("🔄 reloaded")
 
 
 # ---------------- CALLBACKS ----------------
@@ -260,19 +226,21 @@ async def cb_autoplay(_, q: CallbackQuery):
     chat_id = int(q.data.split("|")[1])
 
     AUTOPLAY[chat_id] = not AUTOPLAY.get(chat_id, False)
-
     await q.answer(f"autoplay {'on' if AUTOPLAY[chat_id] else 'off'}")
 
 
-# ---------------- STREAM END ----------------
+# ---------------- STREAM END FIX ----------------
 
 @call.on_update()
 async def stream_end(_, update):
 
+    # 🔥 FIX crash (important)
     if not isinstance(update, StreamAudioEnded):
         return
 
-    chat_id = update.chat_id
+    chat_id = getattr(update, "chat_id", None)
+    if not chat_id:
+        return
 
     if chat_id in QUEUE and QUEUE[chat_id]:
         QUEUE[chat_id].pop(0)
@@ -282,26 +250,21 @@ async def stream_end(_, update):
 
     elif AUTOPLAY.get(chat_id):
 
-        results = await yt.search("trending songs", limit=5)
+        results = await yt.search("trending songs", limit=1)
+        r = results[0]
 
         data = {
-            "title": results[0]["title"],
-            "duration_min": results[0]["duration"],
-            "link": results[0]["link"],
-            "thumb": results[0]["thumbnails"][0]["url"]
+            "title": r["title"],
+            "duration_min": r.get("duration"),
+            "link": r["webpage_url"],
+            "thumb": r["thumbnail"]
         }
 
         QUEUE.setdefault(chat_id, []).append(data)
-
         await play_stream(chat_id)
 
     else:
         await call.leave_group_call(chat_id)
-
-        try:
-            await app.send_message(chat_id, "➻ stream ended no queued chats !")
-        except:
-            pass
 
 
 # ---------------- START ----------------
