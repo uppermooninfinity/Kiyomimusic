@@ -101,6 +101,26 @@ async def _download(link: str, media_type: str):
     except Exception:
         return None
 
+async def url(self, message_1):
+    messages = [message_1]
+
+    if message_1.reply_to_message:
+        messages.append(message_1.reply_to_message)
+
+    for message in messages:
+        if message.entities:
+            for entity in message.entities:
+                if entity.type.name == "URL":
+                    text = message.text or message.caption
+                    return text[entity.offset: entity.offset + entity.length]
+
+        if message.caption_entities:
+            for entity in message.caption_entities:
+                if entity.type.name == "TEXT_LINK":
+                    return entity.url
+
+    return None
+
 
 async def download_song(link: str) -> str:
     return await _download(link, "audio")
