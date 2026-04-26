@@ -12,12 +12,20 @@ YTDL_OPTS = {
     "default_search": "ytsearch",
     "source_address": "0.0.0.0",
 
-    # 🔥 FAST MODE (ANDROID CLIENT)
+    # 🔥 ANDROID + WEB (ANTI BOT)
     "extractor_args": {
         "youtube": {
-            "player_client": ["android"]
+            "player_client": ["android", "web"]
         }
     },
+
+    # 🔥 HEADERS (IMPORTANT)
+    "http_headers": {
+        "User-Agent": "com.google.android.youtube/17.31.35 (Linux; Android 11)"
+    },
+
+    # 🔥 COOKIES (PUT FILE IN ROOT)
+    "cookiefile": "cookies.txt",
 }
 
 
@@ -25,14 +33,21 @@ class YouTubeAPI:
     def __init__(self):
         self.ydl = YoutubeDL(YTDL_OPTS)
 
-    # ---------------- TRACK (PLAY COMMAND) ----------------
+    # ---------------- TRACK ----------------
     async def track(self, query: str):
         loop = asyncio.get_event_loop()
 
-        data = await loop.run_in_executor(
-            None,
-            lambda: self.ydl.extract_info(query, download=False)
-        )
+        try:
+            data = await loop.run_in_executor(
+                None,
+                lambda: self.ydl.extract_info(query, download=False)
+            )
+        except Exception:
+            # 🔥 fallback search
+            data = await loop.run_in_executor(
+                None,
+                lambda: self.ydl.extract_info(f"ytsearch:{query}", download=False)
+            )
 
         if "entries" in data:
             data = data["entries"][0]
@@ -51,7 +66,7 @@ class YouTubeAPI:
 
         return result, data.get("id")
 
-    # ---------------- SEARCH (AUTOPLAY USE) ----------------
+    # ---------------- SEARCH ----------------
     async def search(self, query: str, limit: int = 5):
         loop = asyncio.get_event_loop()
 
@@ -65,7 +80,7 @@ class YouTubeAPI:
 
         return data.get("entries", [])
 
-    # ---------------- GET DIRECT STREAM URL ----------------
+    # ---------------- DOWNLOAD / STREAM ----------------
     async def download(self, url: str, mystic=None):
         loop = asyncio.get_event_loop()
 
@@ -74,32 +89,38 @@ class YouTubeAPI:
                 None,
                 lambda: self.ydl.extract_info(url, download=False)
             )
-
-            formats = info.get("formats", [])
-
-            best_audio = None
-
-            for f in formats:
-                if f.get("acodec") != "none":
-                    best_audio = f
-                    break
-
-            if not best_audio:
+        except Exception:
+            # 🔥 retry with search fallback
+            try:
+                info = await loop.run_in_executor(
+                    None,
+                    lambda: self.ydl.extract_info(f"ytsearch:{url}", download=False)
+                )
+                if "entries" in info:
+                    info = info["entries"][0]
+            except Exception as e:
+                if mystic:
+                    try:
+                        await mystic.edit_text(f"❌ error: {e}")
+                    except:
+                        pass
                 return None, False
 
-            audio_url = best_audio.get("url")
+        formats = info.get("formats", [])
 
-            return audio_url, True
+        # 🔥 best audio (highest bitrate)
+        best_audio = max(
+            (f for f in formats if f.get("acodec") != "none"),
+            key=lambda x: x.get("abr", 0),
+            default=None
+        )
 
-        except Exception as e:
-            if mystic:
-                try:
-                    await mystic.edit_text(f"❌ error: {e}")
-                except:
-                    pass
+        if not best_audio:
             return None, False
 
-    # ---------------- FORMAT DURATION ----------------
+        return best_audio.get("url"), True
+
+    # ---------------- FORMAT ----------------
     def format_duration(self, seconds: int) -> str:
         if not seconds:
             return "live"
@@ -107,7 +128,4 @@ class YouTubeAPI:
         m, s = divmod(seconds, 60)
         h, m = divmod(m, 60)
 
-        if h:
-            return f"{h}:{m:02d}:{s:02d}"
-        else:
-            return f"{m}:{s:02d}"
+        return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
