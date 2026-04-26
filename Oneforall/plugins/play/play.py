@@ -232,14 +232,11 @@ async def cb_autoplay(_, q: CallbackQuery):
 
 # ---------------- STREAM END FIX ----------------
 
-@call.on_update()
+@call.on_stream_end()
 async def stream_end(_, update):
 
-    # 🔥 FIX crash (important)
-    if not isinstance(update, StreamAudioEnded):
-        return
-
     chat_id = getattr(update, "chat_id", None)
+
     if not chat_id:
         return
 
@@ -262,11 +259,11 @@ async def stream_end(_, update):
         }
 
         QUEUE.setdefault(chat_id, []).append(data)
+
         await play_stream(chat_id)
 
     else:
         await call.leave_group_call(chat_id)
-
 
 # ---------------- START ----------------
 
