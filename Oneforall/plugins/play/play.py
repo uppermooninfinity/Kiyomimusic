@@ -12,9 +12,9 @@ from pytgcalls.exceptions import AlreadyJoinedError
 from pytgcalls.types import MediaStream, AudioQuality
 from pytgcalls.types.stream import StreamAudioEnded
 
-from AloneRobot import app
+from Oneforall import app
 from config import API_ID, API_HASH, STRING_SESSION, BANNED_USERS
-from AloneRobot.modules.youtube import YouTubeAPI
+from Oneforall.platforms.Youtube import YouTubeAPI
 
 yt = YouTubeAPI()
 
