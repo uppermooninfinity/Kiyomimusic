@@ -1,3 +1,4 @@
+print("loaded")
 import asyncio
 
 from pyrogram import Client, filters
