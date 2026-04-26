@@ -6,13 +6,13 @@ from typing import Union
 import yt_dlp
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
-from youtubesearchpython.__future__ import VideosSearch 
+from py_yt import VideosSearch 
 from Oneforall.utils.formatters import time_to_seconds
 import aiohttp
 from Oneforall import LOGGER
 
-YOUR_API_URL = None
-FALLBACK_API_URL = "https://vercel.com/txkuzes-projects/admin-music-hub"
+YOUR_API_URL = "https://kartik.opusx.workers.dev/yt"
+FALLBACK_API_URL = "https://kartik.opusx.workers.dev/yt"
 
 async def load_api_url():
     global YOUR_API_URL
