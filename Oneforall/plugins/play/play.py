@@ -230,13 +230,12 @@ async def cb_autoplay(_, q: CallbackQuery):
     await q.answer(f"autoplay {'on' if AUTOPLAY[chat_id] else 'off'}")
 
 
-# ---------------- STREAM END FIX ----------------
+# ---------------- STREAM END ----------------
 
 @call.on_stream_end()
 async def stream_end(_, update):
 
     chat_id = getattr(update, "chat_id", None)
-
     if not chat_id:
         return
 
@@ -249,13 +248,19 @@ async def stream_end(_, update):
     elif AUTOPLAY.get(chat_id):
 
         results = await yt.search("trending songs", limit=1)
+
+        if not results:
+            return await call.leave_group_call(chat_id)
+
         r = results[0]
 
         data = {
-            "title": r["title"],
+            "title": r.get("title"),
             "duration_min": r.get("duration"),
-            "link": r["webpage_url"],
-            "thumb": r["thumbnail"]
+            "link": r.get("webpage_url") or r.get("url"),
+            "thumb": r.get("thumbnail") or (
+                r.get("thumbnails")[0]["url"] if r.get("thumbnails") else None
+            )
         }
 
         QUEUE.setdefault(chat_id, []).append(data)
@@ -264,6 +269,7 @@ async def stream_end(_, update):
 
     else:
         await call.leave_group_call(chat_id)
+
 
 # ---------------- START ----------------
 
