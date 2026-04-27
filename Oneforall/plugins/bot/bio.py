@@ -7,7 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from Oneforall import app
 from config import MONGO_DB_URI, OTHER_LOGS, BOT_USERNAME
 
-MONGO_URL = ""mongodb+srv://knight4563:knight4563@cluster0.a5br0se.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URL = "mongodb+srv://knight4563:knight4563@cluster0.a5br0se.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 # ----------------- Mongo -----------------
 mongo = AsyncIOMotorClient(MONGO_URL)
 db = mongo["OneForAll"]
