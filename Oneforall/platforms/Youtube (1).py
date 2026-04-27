@@ -24,7 +24,7 @@ async def load_api_url():
                 if response.status == 200:
                     content = await response.text()
                     YOUR_API_URL = content.strip()
-                    logger.info("API URL loaded successfully")
+                    logger.info(",❄️💘url loaded successfully")
                 else:
                     YOUR_API_URL = FALLBACK_API_URL
                     logger.info("Using fallback API URL")
