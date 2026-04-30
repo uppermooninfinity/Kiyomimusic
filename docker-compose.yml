@@ -1,0 +1,21 @@
+services:
+  musicbot:
+    build: .
+    container_name: music_bot
+    restart: always
+
+    environment:
+      - API_ID=your_api_id
+      - API_HASH=your_api_hash
+      - BOT_TOKEN=your_bot_token
+      - SESSION_STRING=your_session_string
+      - SUDO_USERS=your_user_id
+      - LOG_GROUP_ID=your_log_group_id
+
+    volumes:
+      - .:/app
+
+    ports:
+      - "9090:9090"   # 👈 custom port (change anything you want)
+
+    command: bash start.sh
