@@ -213,9 +213,8 @@ async def welcome_handler(client, message: Message):
                     )
                     return await app.leave_chat(message.chat.id)
 
-                await message.reply_photo(
-                    photo=config.START_VIDEO_URL,
-                    caption=_["start_3"].format(
+                await message.reply_text(
+                    text=_["start_3"].format(
                         message.from_user.first_name,
                         app.mention,
                         message.chat.title,
