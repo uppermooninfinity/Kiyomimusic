@@ -73,8 +73,7 @@ class BUTTONS(object):
 
         # 🔻 Navigation
         nav = [
-            InlineKeyboardButton("◁", callback_data="settings_back_helper"),
-            InlineKeyboardButton("▷", callback_data="managebot123 settings_back_helper"),
+            InlineKeyboardButton("<", callback_data="settings_back_helper"),
         ]
 
         return [highlight] + rows + [special, nav]
