@@ -79,10 +79,74 @@ def stream_markup(_, videoid, chat_id):
             InlineKeyboardButton(text="💿", callback_data=f"ADMIN Replay|{chat_id}"),
             InlineKeyboardButton(text="‣‣I", callback_data=f"ADMIN Skip|{chat_id}"),
         ],
+        [
+            InlineKeyboardButton(text="🎲 AutoPlay", callback_data=f"AutoPlay|{chat_id}"),
+        ],
         [InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close")],
     ]
     return buttons
 
+
+# Autoplay Markup Functions
+
+def autoplay_mood_markup(_):
+    """Generate mood selection buttons for autoplay"""
+    moods = [
+        "Happy", "Sad", "Energetic", "Chill",
+        "Rock", "Pop", "Hip-Hop", "Jazz"
+    ]
+    buttons = []
+    for i in range(0, len(moods), 2):
+        row = [
+            InlineKeyboardButton(
+                text=moods[i],
+                callback_data=f"songconfig_mood {moods[i]}"
+            )
+        ]
+        if i + 1 < len(moods):
+            row.append(
+                InlineKeyboardButton(
+                    text=moods[i + 1],
+                    callback_data=f"songconfig_mood {moods[i + 1]}"
+                )
+            )
+        buttons.append(row)
+    
+    buttons.append([
+        InlineKeyboardButton(text="❌ Cancel", callback_data="close")
+    ])
+    
+    return buttons
+
+
+def autoplay_language_markup(_):
+    """Generate language selection buttons for autoplay"""
+    languages = [
+        "English", "Hindi", "Spanish", "French",
+        "German", "Japanese", "Korean", "Portuguese"
+    ]
+    buttons = []
+    for i in range(0, len(languages), 2):
+        row = [
+            InlineKeyboardButton(
+                text=languages[i],
+                callback_data=f"songconfig_language {languages[i]}"
+            )
+        ]
+        if i + 1 < len(languages):
+            row.append(
+                InlineKeyboardButton(
+                    text=languages[i + 1],
+                    callback_data=f"songconfig_language {languages[i + 1]}"
+                )
+            )
+        buttons.append(row)
+    
+    buttons.append([
+        InlineKeyboardButton(text="❌ Cancel", callback_data="close")
+    ])
+    
+    return buttons
 
 def playlist_markup(_, videoid, user_id, ptype, channel, fplay):
     buttons = [
