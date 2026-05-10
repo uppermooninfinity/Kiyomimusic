@@ -5,6 +5,17 @@ from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
 from pytgcalls.exceptions import NoActiveGroupCall
 
+from Oneforall.utils.inline import (
+    botplaylist_markup,
+    livestream_markup,
+    playlist_markup,
+    slider_markup,
+    track_markup,
+    autoplay_mood_markup,
+    autoplay_language_markup,
+)
+from Oneforall.utils.database import is_autoplay_on, get_autoplay_mood
+
 import config
 from config import BANNED_USERS, lyrical
 from Oneforall import Apple, Resso, SoundCloud, Spotify, Telegram, YouTube, app
