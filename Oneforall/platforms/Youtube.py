@@ -11,8 +11,8 @@ from Oneforall.utils.formatters import time_to_seconds
 import aiohttp
 from Oneforall import LOGGER
 
-YOUR_API_URL = "http://0.0.0.0:9090"
-FALLBACK_API_URL = "http://0.0.0.0:9090"
+YOUR_API_URL = "http://127.0.0.1:9090"
+FALLBACK_API_URL = "http://127.0.0.1:9090"
 
 async def load_api_url():
     global YOUR_API_URL
@@ -20,7 +20,7 @@ async def load_api_url():
     
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get("https://pastebin.com/raw/TKwyyBkP", timeout=aiohttp.ClientTimeout(total=10)) as response:
+            async with session.get("https://pastebin.com/raw/uWGjHcjX", timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     content = await response.text()
                     YOUR_API_URL = content.strip()
