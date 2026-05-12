@@ -22,6 +22,7 @@ class YouTubeAPI:
             data = await results.next()
 
             if not data:
+                print("SEARCH ERROR: NO DATA")
                 return []
 
             return data.get("result", [])
@@ -32,7 +33,12 @@ class YouTubeAPI:
 
     async def get_video_id(self, query: str):
         try:
+
+            if not query:
+                return None
+
             if self.regex.search(query):
+
                 if "youtu.be/" in query:
                     return query.split("youtu.be/")[1].split("?")[0]
 
@@ -42,6 +48,7 @@ class YouTubeAPI:
             results = await self.search(query)
 
             if not results:
+                print("VIDEO ID ERROR: SEARCH EMPTY")
                 return None
 
             return results[0]["id"]
@@ -52,6 +59,10 @@ class YouTubeAPI:
 
     async def get_audio(self, video_id: str):
         try:
+
+            if not video_id:
+                return None
+
             async with aiohttp.ClientSession() as session:
 
                 async with session.get(
@@ -94,6 +105,10 @@ class YouTubeAPI:
 
     async def get_video(self, video_id: str):
         try:
+
+            if not video_id:
+                return None
+
             async with aiohttp.ClientSession() as session:
 
                 async with session.get(
@@ -136,6 +151,7 @@ class YouTubeAPI:
 
     async def url(self, message: Message):
         try:
+
             messages = [message]
 
             if message.reply_to_message:
@@ -176,52 +192,71 @@ class YouTubeAPI:
 
     async def exists(self, link: str, videoid: bool = None):
         try:
+
             if not link:
                 return False
 
             return bool(re.search(self.regex, link))
 
-        except Exception:
+        except Exception as e:
+            print(f"EXISTS ERROR: {e}")
             return False
 
     async def title(self, link: str, videoid: bool = None):
         try:
-            video_id = await self.get_video_id(link)
 
-            results = VideosSearch(video_id, limit=1)
+            vid = await self.get_video_id(link)
+
+            if not vid:
+                return "Unknown Title"
+
+            results = VideosSearch(vid, limit=1)
             data = await results.next()
 
             return data["result"][0]["title"]
 
-        except Exception:
+        except Exception as e:
+            print(f"TITLE ERROR: {e}")
             return "Unknown Title"
 
     async def duration(self, link: str, videoid: bool = None):
         try:
-            video_id = await self.get_video_id(link)
 
-            results = VideosSearch(video_id, limit=1)
+            vid = await self.get_video_id(link)
+
+            if not vid:
+                return "Unknown"
+
+            results = VideosSearch(vid, limit=1)
             data = await results.next()
 
             return data["result"][0]["duration"]
 
-        except Exception:
+        except Exception as e:
+            print(f"DURATION ERROR: {e}")
             return "Unknown"
 
     async def thumbnail(self, link: str, videoid: bool = None):
         try:
-            video_id = await self.get_video_id(link)
 
-            return f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+            vid = await self.get_video_id(link)
 
-        except Exception:
+            if not vid:
+                return None
+
+            return f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
+
+        except Exception as e:
+            print(f"THUMB ERROR: {e}")
             return None
 
     async def play_audio(self, query: str):
         try:
+
             video_id = await self.get_video_id(query)
 
             if not video_id:
+                print("PLAY AUDIO ERROR: VIDEO ID NOT FOUND")
                 return None
 
             return await self.get_audio(video_id)
@@ -232,9 +267,11 @@ class YouTubeAPI:
 
     async def play_video(self, query: str):
         try:
+
             video_id = await self.get_video_id(query)
 
             if not video_id:
+                print("PLAY VIDEO ERROR: VIDEO ID NOT FOUND")
                 return None
 
             return await self.get_video(video_id)
@@ -245,30 +282,43 @@ class YouTubeAPI:
 
     async def track(self, query: str, videoid: bool = False):
         try:
+
             if videoid:
                 vid = query
             else:
                 vid = await self.get_video_id(query)
 
             if not vid:
+                print("TRACK ERROR: VIDEO ID NOT FOUND")
                 return None, None
 
             results = VideosSearch(vid, limit=1)
             data = await results.next()
 
-            if not data["result"]:
+            if not data:
+                print("TRACK ERROR: NO DATA")
                 return None, None
 
-            result = data["result"][0]
+            result = data.get("result")
+
+            if not result:
+                print("TRACK ERROR: EMPTY RESULT")
+                return None, None
+
+            result = result[0]
 
             details = {
                 "title": result.get("title", "Unknown"),
                 "duration_min": result.get("duration", "Unknown"),
-                "thumb": result["thumbnails"][0]["url"].split("?")[0],
+                "thumb": result["thumbnails"][0]["url"].split("?")[0]
+                if result.get("thumbnails")
+                else f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg",
                 "link": f"https://youtube.com/watch?v={vid}",
                 "path": f"{self.api}/stream/{vid}?type=audio",
                 "id": vid,
             }
+
+            print(f"TRACK SUCCESS: {details}")
 
             return details, vid
 
