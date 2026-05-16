@@ -32,7 +32,7 @@ async def log_quiz_sent(chat_id: int, chat_title: str = None):
             f"🧠 **Quiz Sent** `{start_time}`"
             f"📱 **Chat:** {chat_title or chat_id}"
             f"🔗 **ID:** `{chat_id}`",
-            f"🥀 ᴍᴀᴅᴇ ʙʏ💗:[ ✦ sᴇɢғᴀᴜʟᴛᴇᴅ ❕](https://t.me/owner_of_itachi)",
+            f"🥀 ᴍᴀᴅᴇ ʙʏ💗:[ ✦ sᴇɢғᴀᴜʟᴛᴇᴅ ❕](https://t.me/deafen_ackerman)",
             parse_mode=ParseMode.MARKDOWN
         )
     except:
