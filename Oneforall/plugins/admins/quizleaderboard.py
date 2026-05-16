@@ -3,8 +3,7 @@ import requests
 from datetime import datetime, timedelta
 from pyrogram import filters
 from pyrogram.enums import ParseMode
-from Oneforall import app
-from Oneforall.mongo import db
+from Oneforall import app, mongodb
 
 STATS_COLL = mongodb.quiz_stats
 CHATS_COLL = mongodb.chats
@@ -57,15 +56,14 @@ async def send_leaderboard(chat_id: int, manual=False):
     if not top_users:
         msg = await app.send_message(chat_id, "🏆 **No quiz stats yet!**")
     else:
-        text = "🏆 **QUIZ LEADERBOARD** (Top 10)
+        text = """🏆 **QUIZ LEADERBOARD** (Top 10)
 
-"
+"""
         for i, user in enumerate(top_users, 1):
             name = user.get("username", f"ID {user['user_id']}")
             score = user["correct_count"]
             emoji = "🥇🥈🥉"[i-1] if i <= 3 else f"{i}."
-            text += f"{emoji} **{name}** → `{score}` ✅
-"
+            text += f"{emoji} **{name}** → `{score}` ✅\n"
         
         # 🎥 PRIORITY: Video (with thumbnail fallback)
         try:

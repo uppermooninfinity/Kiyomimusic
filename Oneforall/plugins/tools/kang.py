@@ -13,9 +13,10 @@ from pyrogram import filters, raw
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import StickersetInvalid, StickersTooMuch, FloodWait, RPCError
 
+import config
 from Oneforall import app
 
-BOT = (await app.get_me()).username.lower()
+BOT = config.BOT_USERNAME
 
 fetch = AsyncClient(
     http2=True,

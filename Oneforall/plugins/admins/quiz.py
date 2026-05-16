@@ -57,9 +57,9 @@ async def send_quiz(chat_id: int):
 
     poll = await app.send_poll(
         chat_id=chat_id,
-        question=f"🧠 **ᴡᴀɪᴛ 𝟻 sᴇᴄᴏɴᴅ!**
+        question=f"""🧠 **ᴡᴀɪᴛ 𝟻 sᴇᴄᴏɴᴅ!**
 
-{question}",
+{question}""",
         options=all_answers,
         is_anonymous=False,
         type=PollType.QUIZ,
