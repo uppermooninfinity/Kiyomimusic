@@ -1,106 +1,137 @@
 import random
-import time
 import requests
 import asyncio
-from datetime import datetime
+import html
 from pyrogram import filters
-from pyrogram.enums import ChatAction, PollType, ParseMode
+from pyrogram.enums import PollType
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from NOBITA_MUSIC import app  # Replace with actual import
 
-from Oneforall import app
-from Oneforall.core.mongo import mongodb
-# ⚙️ CONFIG
-CHATS_COLL = mongodb.chats
-STATS_COLL = mongodb.quiz_stats
-LOGGER_ID = -1003634796457  # ← PUT YOUR LOG CHANNEL/GROUP ID HERE
+quiz_loops = {}
+active_polls = {}
 
-last_command_time = {}
-
-async def get_target_chats():
-    cursor = CHATS_COLL.find({"type": {"$in": ["group", "supergroup"]}})
-    return [doc["chat_id"] async for doc in cursor]
-
-
-async def log_quiz_sent(chat_id: int, chat_title: str = None):
-    """Log quiz timing to special channel"""
-    if not LOGGER_ID or LOGGER_ID == "":
-        return
-        
-    try:
-        start_time = datetime.now().strftime("%H:%M:%S")
-        await app.send_message(
-            LOGGER_ID,
-            f"🧠 **Quiz Sent** `{start_time}`"
-            f"📱 **Chat:** {chat_title or chat_id}"
-            f"🔗 **ID:** `{chat_id}`",
-            f"🥀 ᴍᴀᴅᴇ ʙʏ💗:[ ✦ sᴇɢғᴀᴜʟᴛᴇᴅ ❕](https://t.me/deafen_ackerman)",
-            parse_mode=ParseMode.MARKDOWN
-        )
-    except:
-        pass
-
-
-async def send_quiz(chat_id: int):
+async def fetch_quiz_question():
     categories = [9, 17, 18, 20, 21, 27]
-    await app.send_chat_action(chat_id, ChatAction.TYPING)
-
     url = f"https://opentdb.com/api.php?amount=1&category={random.choice(categories)}&type=multiple"
-    response = requests.get(url).json()
-    question_data = response["results"][0]
+    
+    try:
+        response = requests.get(url)
+        data = response.json()
+        question_data = data["results"][0]
 
-    question = question_data["question"]
-    correct_answer = question_data["correct_answer"]
-    incorrect_answers = question_data["incorrect_answers"]
+        question = html.unescape(question_data["question"])
+        correct = html.unescape(question_data["correct_answer"])
+        incorrect = [html.unescape(i) for i in question_data["incorrect_answers"]]
+        options = incorrect + [correct]
+        random.shuffle(options)
+        cid = options.index(correct)
 
-    all_answers = incorrect_answers + [correct_answer]
-    random.shuffle(all_answers)
-    cid = all_answers.index(correct_answer)
+        return question, options, cid
+    except:
+        return None, None, None
+
+async def send_quiz_poll(client, chat_id, user_id, duration):
+    question, options, cid = await fetch_quiz_question()
+    if not question:
+        return
+
+    if user_id in active_polls:
+        try:
+            await app.delete_messages(chat_id, active_polls[user_id])
+        except:
+            pass
 
     poll = await app.send_poll(
         chat_id=chat_id,
-        question=f"""🧠 **ᴡᴀɪᴛ 𝟻 sᴇᴄᴏɴᴅ!**
-
-{question}""",
-        options=all_answers,
-        is_anonymous=False,
+        question=question,
+        options=options,
         type=PollType.QUIZ,
+        is_anonymous=False,
         correct_option_id=cid,
+        open_period=duration
     )
-    return poll.id
+    if poll:
+        active_polls[user_id] = poll.id
 
+# /quiz info command
+@app.on_message(filters.command(["quiz", "uiz"], prefixes=["/", ".", "!", "Q", "q"]))
+async def quiz_help(client, message):
+    await message.reply_text(
+       " 🌟 ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴛʜᴇ Qᴜɪᴢ Sʏsᴛᴇᴍ! 🎯📚"
 
-@app.on_message(filters.command(["quiz"]))
-async def quiz_cmd(client, message):
+       "🛠️ ʜᴏᴡ ᴛᴏ ᴜsᴇ:"
+       "1️⃣ ᴛʏᴘᴇ /quizon ✨"
+       "2️⃣ ᴄʜᴏᴏsᴇ ᴀ ᴛɪᴍᴇ ɪɴᴛᴇʀᴠᴀʟ ⏳ (ᴇ.ɢ. 30s, 1min)"
+       "3️⃣ ǫᴜɪᴢ ᴡɪʟʟ sᴛᴀʀᴛ ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟʏ 🚀"
+       "4️⃣ ᴜsᴇ /quizoff 🛑 ᴛᴏ sᴛᴏᴘ"
+
+       "📌 ᴄᴏᴍᴍᴀɴᴅs:"
+       "▶️ /quizon — sᴛᴀʀᴛ ǫᴜɪᴢ ʟᴏᴏᴘ 🔄"
+       "⏹️ /quizoff — sᴛᴏᴘ ǫᴜɪᴢ ❌"
+    )
+
+# /quizon show timings only
+@app.on_message(filters.command(["quizon", "uizon"], prefixes=["/", ".", "!", "Q", "q"]))
+async def quizon_start(client, message):
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("30s", callback_data="30_sec"), InlineKeyboardButton("1min", callback_data="1_min")],
+        [InlineKeyboardButton("5min", callback_data="5_min"), InlineKeyboardButton("10min", callback_data="10_min")]
+    ])
+    await message.reply_text(
+        "**Choose a quiz interval to begin:**",
+        reply_markup=keyboard
+    )
+
+# Interval selected - quiz starts now
+@app.on_callback_query(filters.regex(r"^\d+_sec$|^\d+_min$"))
+async def interval_selected(client, query):
+    user_id = query.from_user.id
+    chat_id = query.message.chat.id
+
+    if quiz_loops.get(user_id):
+        await query.answer("Quiz is already running!", show_alert=True)
+        return
+
+    interval_map = {
+        "30_sec": (30, "30 seconds"),
+        "1_min": (60, "1 minute"),
+        "5_min": (300, "5 minutes"),
+        "10_min": (600, "10 minutes")
+    }
+
+    interval, label = interval_map.get(query.data, (60, "1 minute"))
+
+    await query.answer("Quiz loop started!", show_alert=True)
+    await query.message.delete()
+    await query.message.reply_text(f"✅ Quiz started! New quiz every {label}.")
+
+    quiz_loops[user_id] = True
+
+    while quiz_loops.get(user_id):
+        await send_quiz_poll(client, chat_id, user_id, duration=interval)
+        for _ in range(interval):
+            if not quiz_loops.get(user_id):
+                return
+            await asyncio.sleep(1)
+
+# /quizoff stop command
+@app.on_message(filters.command(["quizoff", "uizoff"], prefixes=["/", ".", "!", "Q", "q"]))
+async def quiz_stop(client, message):
     user_id = message.from_user.id
-    current_time = time.time()
 
-    if user_id in last_command_time and current_time - last_command_time[user_id] < 5:
-        return await message.reply_text("⏳ **ᴡᴀɪᴛ 𝟻 sᴇᴄᴏɴᴅ ! **")
+    if not quiz_loops.get(user_id):
+        await message.reply_text("❌ No quiz is running.")
+        return
 
-    last_command_time[user_id] = current_time
-    await send_quiz(message.chat.id)
+    quiz_loops.pop(user_id)
+    await message.reply_text("🛑 Quiz loop stopped.")
 
-
-async def auto_quiz_loop():
-    INTERVAL = 3600  # 1 hour
-    while True:
+    if user_id in active_polls:
         try:
-            chats = await get_target_chats()
-            print(f"🧠 Quiz → {len(chats)} groups")
-            
-            for chat_id in chats:
-                try:
-                    # Get chat title for log
-                    chat = await app.get_chat(chat_id)
-                    await log_quiz_sent(chat_id, chat.title)
-                    await send_quiz(chat_id)
-                except Exception as e:
-                    print(f"Quiz failed {chat_id}: {e}")
-        except Exception as e:
-            print(f"Quiz loop error: {e}")
-        await asyncio.sleep(INTERVAL)
+            await app.delete_messages(message.chat.id, active_polls[user_id])
+            active_polls.pop(user_id)
+        except:
+            pass
 
 
-@app.on_startup()
-async def startup():
-    asyncio.create_task(auto_quiz_loop())
-    print("🧠ᴀᴜᴛᴏ ǫᴜɪᴢ sᴛᴀʀᴛᴇᴅ")
+            # MADE BY NOBITA ONLY FOR AKSHIT 😊
