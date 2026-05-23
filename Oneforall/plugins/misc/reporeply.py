@@ -12,6 +12,6 @@ async def repo_reply(_, message: Message):
 
     await message.reply_video(
         video=REPO_VID_URL,
-        caption=strings["Repocaption"],
+        caption=strings["repocaption"],
         has_spoiler=True,
     )
