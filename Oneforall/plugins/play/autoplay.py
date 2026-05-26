@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 from pyrogram import filters
@@ -23,6 +24,96 @@ from Oneforall.utils.inline import (
 
 # Store previous tracks per chat
 previous_tracks = {}
+
+
+def format_time(seconds):
+    minutes = seconds // 60
+    seconds = seconds % 60
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def generate_progress_bar(current, total, length=12):
+
+    if total <= 0:
+        total = 1
+
+    filled = int(length * current / total)
+    empty = length - filled
+
+    return "▰" * filled + "▱" * empty
+
+
+def progress_markup(current, total):
+
+    progress = generate_progress_bar(
+        current,
+        total,
+    )
+
+    current_time = format_time(current)
+    total_time = format_time(total)
+
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    f"{progress}",
+                    callback_data="progress",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    f"{current_time} / {total_time}",
+                    callback_data="progress_time",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "⏭ sᴋɪᴘ",
+                    callback_data="askip",
+                ),
+                InlineKeyboardButton(
+                    "ᴄʟᴏsᴇ",
+                    callback_data="close",
+                ),
+            ],
+        ]
+    )
+
+
+async def autoplay_progress_updater(
+    message,
+    duration_seconds,
+):
+
+    current = 0
+
+    while current <= duration_seconds:
+
+        try:
+
+            await message.edit_reply_markup(
+                reply_markup=progress_markup(
+                    current,
+                    duration_seconds,
+                )
+            )
+
+        except Exception as e:
+            print(f"Progress Update Error: {e}")
+
+        await asyncio.sleep(1)
+
+        current += 1
+
+
+@app.on_callback_query(filters.regex("^progress"))
+async def progress_callback(_, CallbackQuery):
+
+    return await CallbackQuery.answer(
+        "🎵 ᴍᴜsɪᴄ ɪs ᴘʟᴀʏɪɴɢ...",
+        show_alert=False,
+    )
 
 
 def askip_markup():
@@ -72,7 +163,6 @@ async def handle_mood_selection(client, CallbackQuery, _):
 
     lyrical[chat_id]["autoplay_mood"] = mood
 
-    # Remove old buttons
     try:
         await CallbackQuery.message.edit_reply_markup(None)
     except:
@@ -125,7 +215,6 @@ async def handle_language_selection(client, CallbackQuery, _):
     except:
         pass
 
-    # Dialogue box
     await CallbackQuery.answer(
         f"✅ ᴀᴜᴛᴏᴘʟᴀʏ ᴇɴᴀʙʟᴇᴅ\n🎵 {mood.title()}\n🌐 {language.title()}",
         show_alert=True,
@@ -154,7 +243,6 @@ async def toggle_autoplay(client, CallbackQuery, _):
 
     autoplay_status = await is_autoplay_on(chat_id)
 
-    # Disable autoplay
     if autoplay_status:
 
         await set_autoplay(chat_id, False)
@@ -164,13 +252,11 @@ async def toggle_autoplay(client, CallbackQuery, _):
         except:
             pass
 
-        # Dialogue box only
         return await CallbackQuery.answer(
             "❌ ᴀᴜᴛᴏᴘʟᴀʏ ᴅɪsᴀʙʟᴇᴅ",
             show_alert=True,
         )
 
-    # Enable setup
     try:
         await CallbackQuery.message.edit_reply_markup(None)
     except:
@@ -231,7 +317,7 @@ async def process_autoplay_skip(chat_id, message):
             )
 
         title = track_data.get("title", "Unknown")
-        duration_min = track_data.get("duration", "Unknown")
+        duration_min = track_data.get("duration", "03:00")
         thumbnail = track_data.get("thumb")
 
         try:
@@ -265,7 +351,13 @@ async def process_autoplay_skip(chat_id, message):
 
         try:
 
-            await app.send_photo(
+            try:
+                mins, secs = map(int, duration_min.split(":"))
+                total_seconds = mins * 60 + secs
+            except:
+                total_seconds = 180
+
+            sent = await app.send_photo(
                 chat_id=chat_id,
                 photo=thumbnail if thumbnail else config.YOUTUBE_IMG_URL,
                 caption=(
@@ -273,7 +365,17 @@ async def process_autoplay_skip(chat_id, message):
                     f"🎵 **ɴᴏᴡ ᴘʟᴀʏɪɴɢ:** {title[:40]}\n"
                     f"⏱ **ᴅᴜʀᴀᴛɪᴏɴ:** {duration_min}"
                 ),
-                reply_markup=askip_markup(),
+                reply_markup=progress_markup(
+                    0,
+                    total_seconds,
+                ),
+            )
+
+            asyncio.create_task(
+                autoplay_progress_updater(
+                    sent,
+                    total_seconds,
+                )
             )
 
         except Exception as e:
