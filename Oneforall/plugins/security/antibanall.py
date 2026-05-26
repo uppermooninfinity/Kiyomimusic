@@ -47,7 +47,7 @@ class AntiBanAllManager:
         # Remove old timestamps outside the time window
         cutoff = now - timedelta(seconds=self.TIME_WINDOW)
         self.recent_bans[chat_id] = [t for t in self.recent_bans[chat_id] if t > cutoff]
-                # Check if threshold exceeded
+        # Check if threshold exceeded
         if len(self.recent_bans[chat_id]) >= self.BAN_THRESHOLD:
             await self.execute_lockdown(client, chat_id, actor_id)
             # Reset counter after trigger to prevent loop
@@ -96,7 +96,8 @@ class AntiBanAllManager:
                 except Exception as e:
                     print(f"[AntiBanAll] Failed to demote {user_id}: {e}")
 
-            # 3. Lock Chat Permissions            try:
+            # 3. Lock Chat Permissions
+            try:
                 await client.set_chat_permissions(
                     chat_id=chat_id,
                     permissions=ChatPermissions(
@@ -145,7 +146,8 @@ async def handle_antibanall_command(client, message):
         return
 
     args = message.text.split()
-    if len(args) < 2:        await message.reply_text("Usage: `/antibanall enable` or `/antibanall disable`")
+    if len(args) < 2:
+        await message.reply_text("Usage: `/antibanall enable` or `/antibanall disable`")
         return
 
     action = args[1].lower()
@@ -194,7 +196,8 @@ async def handle_member_update(client, update: ChatMemberUpdated):
     # For robustness, we rely on the explicit KICKED/BANNED status if available.
     
     if is_banned and actor_id:
-        # Check if the actor is an admin (to distinguish between normal kick and mass ban attack)        # If a normal user tries to ban, they can't. So actor is likely an admin or compromised account.
+        # Check if the actor is an admin (to distinguish between normal kick and mass ban attack)
+        # If a normal user tries to ban, they can't. So actor is likely an admin or compromised account
         
         # Trigger the check
         await anti_ban_mgr.check_and_trigger_lockdown(client, chat_id, actor_id)
