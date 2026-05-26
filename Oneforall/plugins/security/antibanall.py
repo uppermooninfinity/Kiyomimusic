@@ -1,23 +1,37 @@
 import asyncio
 from pyrogram import Client, filters
-from pyrogram.types import ChatPermissions, ChatMemberUpdated
+from pyrogram.types import ChatPermissions, ChatMemberUpdated, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ChatMemberStatus, ChatAction
 from datetime import datetime, timedelta
 
 # Import your app instance and config
 try:
     from Oneforall import app
-    from config import OWNER_ID
+    from config import OWNER_ID, SUDOERS
 except ImportError as e:
     raise ImportError(f"Could not import required modules: {e}")
 
 class AntiBanAllManager:
     def __init__(self):
+        # Track enabled chats: { chat_id: bool }
+        self.enabled_chats = {}
+        
         # Track locked chats: { chat_id: lock_time }
         self.locked_chats = {}
         
         # Lock duration in seconds
         self.LOCK_DURATION = 600  # 10 minutes
+
+    def is_enabled(self, chat_id: int) -> bool:
+        """Check if anti-banall is enabled for a chat."""
+        return self.enabled_chats.get(chat_id, False)
+
+    def toggle_status(self, chat_id: int, enable: bool):
+        """Toggle anti-banall status for a chat."""
+        self.enabled_chats[chat_id] = enable
+        if not enable:
+            # Clear locked chats if disabled
+            self.locked_chats.pop(chat_id, None)
 
     def is_locked(self, chat_id: int) -> bool:
         """Check if a chat is currently locked."""
@@ -157,15 +171,180 @@ anti_ban_mgr = AntiBanAllManager()
 
 # --- HANDLERS ---
 
+@app.on_message(filters.command("antibanall") & filters.group)
+async def handle_antibanall_command(client, message):
+    """
+    Command: /antibanall
+    Shows status and toggle buttons.
+    Only chat admins, OWNER_ID, or SUDOERS can use this.
+    """
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    
+    # Check if user is authorized
+    try:
+        member = await client.get_chat_member(chat_id, user_id)
+        is_admin = member.status in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]
+    except Exception as e:
+        await message.reply_text(f"❌ Error checking user status: {e}")
+        return
+    
+    is_owner_or_sudo = user_id == OWNER_ID or user_id in SUDOERS
+    
+    if not (is_admin or is_owner_or_sudo):
+        await message.reply_text("❌ Only chat admins, OWNER_ID, or SUDOERS can use this command.")
+        return
+    
+    # Get current status
+    is_enabled = anti_ban_mgr.is_enabled(chat_id)
+    status_text = "✅ **ENABLED**" if is_enabled else "❌ **DISABLED**"
+    
+    # Create inline buttons
+    keyboard = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "✅ Enable" if not is_enabled else "☑️ Enabled",
+                    callback_data=f"antibanall_enable_{chat_id}"
+                ),
+                InlineKeyboardButton(
+                    "❌ Disable" if is_enabled else "☐ Disabled",
+                    callback_data=f"antibanall_disable_{chat_id}"
+                )
+            ]
+        ]
+    )
+    
+    response_text = (
+        "🛡️ **Anti-BanAll System**\n\n"
+        f"**Current Status:** {status_text}\n\n"
+        "This system protects your group from mass ban attacks:\n"
+        "• Normal members attempting /banall are kicked\n"
+        "• Admins attempting /banall trigger lockdown\n"
+        "• Chat is locked for 10 minutes\n"
+        "• All admins are demoted\n\n"
+        "Use the buttons below to toggle the system."
+    )
+    
+    await message.reply_text(response_text, reply_markup=keyboard)
+    print(f"[AntiBanAll] /antibanall command used by {user_id} in chat {chat_id}")
+
+@app.on_callback_query()
+async def handle_antibanall_callback(client, callback_query):
+    """Handle inline button callbacks for antibanall toggle."""
+    user_id = callback_query.from_user.id
+    data = callback_query.data
+    
+    # Check if this is an antibanall callback
+    if not data.startswith("antibanall_"):
+        return
+    
+    chat_id = int(data.split("_")[-1])
+    action = data.split("_")[1]
+    
+    # Check if user is authorized
+    try:
+        member = await client.get_chat_member(chat_id, user_id)
+        is_admin = member.status in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]
+    except Exception as e:
+        await callback_query.answer(f"❌ Error: {e}", show_alert=True)
+        return
+    
+    is_owner_or_sudo = user_id == OWNER_ID or user_id in SUDOERS
+    
+    if not (is_admin or is_owner_or_sudo):
+        await callback_query.answer("❌ You are not authorized to use this.", show_alert=True)
+        return
+    
+    # Handle enable/disable
+    if action == "enable":
+        anti_ban_mgr.toggle_status(chat_id, True)
+        await callback_query.answer("✅ Anti-BanAll System Enabled!", show_alert=False)
+        print(f"[AntiBanAll] Anti-BanAll enabled in chat {chat_id} by {user_id}")
+        
+        # Update message
+        is_enabled = anti_ban_mgr.is_enabled(chat_id)
+        status_text = "✅ **ENABLED**" if is_enabled else "❌ **DISABLED**"
+        
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "✅ Enable" if not is_enabled else "☑️ Enabled",
+                        callback_data=f"antibanall_enable_{chat_id}"
+                    ),
+                    InlineKeyboardButton(
+                        "❌ Disable" if is_enabled else "☐ Disabled",
+                        callback_data=f"antibanall_disable_{chat_id}"
+                    )
+                ]
+            ]
+        )
+        
+        response_text = (
+            "🛡️ **Anti-BanAll System**\n\n"
+            f"**Current Status:** {status_text}\n\n"
+            "This system protects your group from mass ban attacks:\n"
+            "• Normal members attempting /banall are kicked\n"
+            "• Admins attempting /banall trigger lockdown\n"
+            "• Chat is locked for 10 minutes\n"
+            "• All admins are demoted\n\n"
+            "Use the buttons below to toggle the system."
+        )
+        
+        await callback_query.edit_message_text(response_text, reply_markup=keyboard)
+        
+    elif action == "disable":
+        anti_ban_mgr.toggle_status(chat_id, False)
+        await callback_query.answer("❌ Anti-BanAll System Disabled!", show_alert=False)
+        print(f"[AntiBanAll] Anti-BanAll disabled in chat {chat_id} by {user_id}")
+        
+        # Update message
+        is_enabled = anti_ban_mgr.is_enabled(chat_id)
+        status_text = "✅ **ENABLED**" if is_enabled else "❌ **DISABLED**"
+        
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "✅ Enable" if not is_enabled else "☑️ Enabled",
+                        callback_data=f"antibanall_enable_{chat_id}"
+                    ),
+                    InlineKeyboardButton(
+                        "❌ Disable" if is_enabled else "☐ Disabled",
+                        callback_data=f"antibanall_disable_{chat_id}"
+                    )
+                ]
+            ]
+        )
+        
+        response_text = (
+            "🛡️ **Anti-BanAll System**\n\n"
+            f"**Current Status:** {status_text}\n\n"
+            "This system protects your group from mass ban attacks:\n"
+            "• Normal members attempting /banall are kicked\n"
+            "• Admins attempting /banall trigger lockdown\n"
+            "• Chat is locked for 10 minutes\n"
+            "• All admins are demoted\n\n"
+            "Use the buttons below to toggle the system."
+        )
+        
+        await callback_query.edit_message_text(response_text, reply_markup=keyboard)
+
 @app.on_message(filters.command("banall") & filters.group)
 async def handle_banall_command(client, message):
     """
     Command: /banall
+    - If anti-banall is disabled, ignore
     - If normal member uses it: kick the member
     - If admin uses it: demote all admins, lock chat for 10 minutes, and kick the admin
     """
     chat_id = message.chat.id
     user_id = message.from_user.id
+    
+    # Check if anti-banall is enabled
+    if not anti_ban_mgr.is_enabled(chat_id):
+        return
     
     try:
         member = await client.get_chat_member(chat_id, user_id)
@@ -227,11 +406,13 @@ async def handle_freechat_command(client, message):
 async def handle_revokeantibanall_command(client, message):
     """
     Command: /revokeantibanall <chat_id>
-    Only OWNER_ID (from config) can use this to unlock any chat.
+    Only OWNER_ID (from config) or SUDOERS can use this to unlock any chat.
     """
     user_id = message.from_user.id
     
-    if user_id != OWNER_ID:
+    is_owner_or_sudo = user_id == OWNER_ID or user_id in SUDOERS
+    
+    if not is_owner_or_sudo:
         await message.reply_text("❌ You are not authorized to use this command.")
         return
     
@@ -253,7 +434,7 @@ async def handle_revokeantibanall_command(client, message):
         
         await anti_ban_mgr.manual_unlock(client, chat_id)
         await message.reply_text(f"✅ Chat {chat_id} has been unlocked.")
-        print(f"[AntiBanAll] Chat {chat_id} unlocked by OWNER_ID {user_id}")
+        print(f"[AntiBanAll] Chat {chat_id} unlocked by OWNER_ID/SUDOER {user_id}")
     except Exception as e:
         await message.reply_text(f"❌ Error: {e}")
         print(f"[AntiBanAll] Error in /revokeantibanall: {e}")
