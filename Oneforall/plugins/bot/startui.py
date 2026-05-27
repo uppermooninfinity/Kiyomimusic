@@ -26,26 +26,6 @@ from strings import get_string
 
 
 # =========================
-# FAST LOADING ANIMATION
-# =========================
-async def loading_animation(message: Message):
-    msg = await message.reply_text("❄️ Initializing...")
-
-    steps = ["░░░░░░░░░░", "▓░░░░░░░░░", "▓▓▓░░░░░░░", "▓▓▓▓▓░░░░░", "▓▓▓▓▓▓▓░░░", "▓▓▓▓▓▓▓▓▓░", "▓▓▓▓▓▓▓▓▓▓"]
-
-    for i, bar in enumerate(steps):
-        try:
-            await msg.edit_text(f"❄️ Initializing...\n\n[{bar}] {i*15}%")
-        except:
-            pass
-        await asyncio.sleep(0.12)  # faster
-
-    await msg.edit_text("❄️ Snowy welcomes you...")
-    await asyncio.sleep(0.5)
-    await msg.delete()
-
-
-# =========================
 # START → PRIVATE
 # =========================
 @app.on_message(filters.command("start") & filters.private & ~BANNED_USERS)
@@ -53,9 +33,6 @@ async def loading_animation(message: Message):
 async def start_pm(client, message: Message, _):
     await add_served_user(message.from_user.id)
     await message.react("❤")
-
-    # Loader
-    await loading_animation(message)
 
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
@@ -166,8 +143,6 @@ async def start_pm(client, message: Message, _):
 @LanguageStart
 async def start_gp(client, message: Message, _):
     uptime = int(time.time() - _boot_)
-
-    await loading_animation(message)
 
     await message.reply_video(
         video=config.START_VIDEO_URL,
