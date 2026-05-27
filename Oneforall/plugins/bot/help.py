@@ -8,7 +8,7 @@ from Oneforall import app
 from Oneforall.utils import help_pannel
 from Oneforall.utils.database import get_lang
 from Oneforall.utils.decorators.language import LanguageStart, languageCB
-from Oneforall.utils.inline.help import help_back_markup, private_help_panel
+from Oneforall.utils.inline.help import help_back_markup, private_help_panel, group_help_pagination
 from Oneforall.utils.stuffs.buttons import BUTTONS
 from Oneforall.utils.stuffs.helper import Helper
 from strings import get_string, helpers
@@ -66,7 +66,7 @@ async def help_com_group(client, message: Message, _):
         ]
     )
     await message.reply_video(
-        video="https://graph.org/file/7e7556e659643463d0054-3701b9b25163759080.mp4",
+        video="https://files.catbox.moe/dfj9zk.mp4",
         caption=_["help_2"],
         reply_markup=keyboard,
     )
@@ -79,11 +79,36 @@ async def group_help_display(client, CallbackQuery, _):
         await CallbackQuery.answer()
     except:
         pass
-    keyboard = help_pannel(_, True)
+    keyboard = group_help_pagination(_, 0)
     await CallbackQuery.edit_message_text(
         _["help_1"].format(SUPPORT_CHAT),
         reply_markup=keyboard,
     )
+
+
+@app.on_callback_query(filters.regex("group_help_page") & ~BANNED_USERS)
+@languageCB
+async def group_help_pagination_handler(client, CallbackQuery, _):
+    try:
+        await CallbackQuery.answer()
+    except:
+        pass
+    callback_data = CallbackQuery.data.strip()
+    page = int(callback_data.split(None, 1)[1])
+    keyboard = group_help_pagination(_, page)
+    await CallbackQuery.edit_message_text(
+        _["help_1"].format(SUPPORT_CHAT),
+        reply_markup=keyboard,
+    )
+
+
+@app.on_callback_query(filters.regex("close_help_group") & ~BANNED_USERS)
+async def close_help_group(client, CallbackQuery):
+    try:
+        await CallbackQuery.answer()
+    except:
+        pass
+    await CallbackQuery.message.delete()
 
 
 @app.on_callback_query(filters.regex("help_callback") & ~BANNED_USERS)
