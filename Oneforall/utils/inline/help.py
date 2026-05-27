@@ -6,6 +6,25 @@ from Oneforall import app
 
 # Combined help buttons integrating from both help.py and buttons.py
 HELP_BUTTONS = [
+    (_["H_B_1"], "help_callback hb1"),
+    (_["H_B_2"], "help_callback hb2"),
+    (_["H_B_3"], "help_callback hb3"),
+    (_["H_B_4"], "help_callback hb4"),
+    (_["H_B_5"], "help_callback hb5"),
+    (_["H_B_6"], "help_callback hb6"),
+    (_["H_B_7"], "help_callback hb7"),
+    (_["H_B_8"], "help_callback hb8"),
+    (_["H_B_9"], "help_callback hb9"),
+    (_["H_B_10"], "help_callback hb10"),
+    (_["H_B_11"], "help_callback hb11"),
+    (_["H_B_12"], "help_callback hb12"),
+    (_["H_B_13"], "help_callback hb13"),
+    (_["H_B_14"], "help_callback hb14"),
+    (_["H_B_15"], "help_callback hb15"),
+    (_["H_B_26"], "help_callback hb17"),
+    (_["H_B_25"], "help_callback hb16"),
+    ("🎮 ғᴜɴ ɢᴀᴍᴇ", "help_callback hb21"),
+    (_["H_B_27"], "help_callback hb18"),
     ("Hɪsᴛᴏʀʏ", "HELP_History"),
     ("Tᴀɢ-Aʟʟ", "HELP_TagAll"),
     ("Iɴꜰᴏ", "HELP_Info"),
@@ -103,7 +122,7 @@ def group_help_pagination(_, page: int = 0):
     if page > 0:
         nav_row.append(
             InlineKeyboardButton(
-                text="⬅️",
+                text="<",
                 callback_data=f"group_help_page {page - 1}",
                 style=ButtonStyle.SUCCESS,
             )
@@ -111,7 +130,7 @@ def group_help_pagination(_, page: int = 0):
     
     nav_row.append(
         InlineKeyboardButton(
-            text="❌",
+            text="ᴅᴇʟᴇᴛᴇ",
             callback_data="close_help_group",
         )
     )
@@ -119,7 +138,7 @@ def group_help_pagination(_, page: int = 0):
     if page < total_pages - 1:
         nav_row.append(
             InlineKeyboardButton(
-                text="➡️",
+                text=">",
                 callback_data=f"group_help_page {page + 1}",
                 style=ButtonStyle.SUCCESS,
             )
