@@ -1,11 +1,10 @@
 import os
-from random import randint
 from typing import Union
 
 from pyrogram.types import InlineKeyboardMarkup
 
 import config
-from Oneforall import YouTube, app, Carbon
+from Oneforall import YouTube, app
 from Oneforall.core.call import Hotty
 
 from Oneforall.misc import db
@@ -18,8 +17,6 @@ from Oneforall.utils.inline import (
     stream_markup2,
 )
 from Oneforall.utils.stream.queue import put_queue, put_queue_index
-from Oneforall.utils.thumbnails import get_thumb
-from Oneforall.utils.stream.thumbnail import get_thumbnail_status
 
 
 async def stream(
@@ -90,16 +87,13 @@ async def stream(
                         vidid, mystic, video=status, videoid=True
                     )
                 except:
-                    await mystic.edit_text(_["play_3"])
-
-                thumb_on = get_thumbnail_status(chat_id) == "on"
+                    return await mystic.edit_text(_["play_3"])
 
                 await Hotty.join_call(
                     chat_id,
                     original_chat_id,
                     file_path,
                     video=status,
-                    image=thumbnail if thumb_on else None,
                 )
 
                 await put_queue(
@@ -117,42 +111,17 @@ async def stream(
 
                 button = stream_markup(_, vidid, chat_id)
 
-                if thumb_on:
-                    thumb = await get_thumb(
-                        thumbnail,
-                        title,
-                        user_name,
+                run = await app.send_photo(
+                    original_chat_id,
+                    photo=config.YOUTUBE_IMG_URL,
+                    caption=_["stream_1"].format(
+                        f"https://t.me/{app.username}?start=info_{vidid}",
+                        title[:18],
                         duration_min,
-                    )
-
-                    run = await app.send_photo(
-                        original_chat_id,
-                        photo=config.YOUTUBE_IMG_URL,
-                        caption=_["stream_1"].format(
-                            f"https://t.me/{app.username}?start=info_{vidid}",
-                            title[:18],
-                            duration_min,
-                            user_name,
-                        ),
-                        reply_markup=InlineKeyboardMarkup(button),
-                    )
-
-                    try:
-                        os.remove(thumb)
-                    except:
-                        pass
-
-                else:
-                    run = await app.send_message(
-                        original_chat_id,
-                        text=_["stream_1"].format(
-                            f"https://t.me/{app.username}?start=info_{vidid}",
-                            title[:18],
-                            duration_min,
-                            user_name,
-                        ),
-                        reply_markup=InlineKeyboardMarkup(button),
-                    )
+                        user_name,
+                    ),
+                    reply_markup=InlineKeyboardMarkup(button),
+                )
 
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
@@ -173,7 +142,7 @@ async def stream(
                 vidid, mystic, videoid=True, video=status
             )
         except:
-            await mystic.edit_text(_["play_3"])
+            return await mystic.edit_text(_["play_3"])
 
         if await is_active_chat(chat_id):
 
@@ -192,38 +161,17 @@ async def stream(
             button = aq_markup(_, chat_id)
             position = len(db.get(chat_id)) - 1
 
-            thumb_on = get_thumbnail_status(chat_id) == "on"
-
-            if thumb_on:
-                thumb = await get_thumb(
-                    thumbnail,
-                    title,
-                    user_name,
+            await app.send_photo(
+                chat_id=original_chat_id,
+                photo=config.YOUTUBE_IMG_URL,
+                caption=_["queue_4"].format(
+                    position,
+                    title[:18],
                     duration_min,
-                )
-
-                await app.send_photo(
-                    chat_id=original_chat_id,
-                    photo=config.YOUTUBE_IMG_URL,
-                    caption=_["queue_4"].format(
-                        position, title[:18], duration_min, user_name
-                    ),
-                    reply_markup=InlineKeyboardMarkup(button),
-                )
-
-                try:
-                    os.remove(thumb)
-                except:
-                    pass
-
-            else:
-                await app.send_message(
-                    chat_id=original_chat_id,
-                    text=_["queue_4"].format(
-                        position, title[:18], duration_min, user_name
-                    ),
-                    reply_markup=InlineKeyboardMarkup(button),
-                )
+                    user_name,
+                ),
+                reply_markup=InlineKeyboardMarkup(button),
+            )
 
         else:
             if not forceplay:
@@ -249,44 +197,18 @@ async def stream(
             )
 
             button = stream_markup(_, vidid, chat_id)
-            thumb_on = get_thumbnail_status(chat_id) == "on"
 
-            if thumb_on:
-                thumb = await get_thumb(
-                    thumbnail,
-                    title,
-                    user_name,
+            run = await app.send_photo(
+                original_chat_id,
+                photo=config.YOUTUBE_IMG_URL,
+                caption=_["stream_1"].format(
+                    f"https://t.me/{app.username}?start=info_{vidid}",
+                    title[:18],
                     duration_min,
-                )
-
-                run = await app.send_photo(
-                    original_chat_id,
-                    photo=config.YOUTUBE_IMG_URL,
-                    caption=_["stream_1"].format(
-                        f"https://t.me/{app.username}?start=info_{vidid}",
-                        title[:18],
-                        duration_min,
-                        user_name,
-                    ),
-                    reply_markup=InlineKeyboardMarkup(button),
-                )
-
-                try:
-                    os.remove(thumb)
-                except:
-                    pass
-
-            else:
-                run = await app.send_message(
-                    original_chat_id,
-                    text=_["stream_1"].format(
-                        f"https://t.me/{app.username}?start=info_{vidid}",
-                        title[:18],
-                        duration_min,
-                        user_name,
-                    ),
-                    reply_markup=InlineKeyboardMarkup(button),
-                )
+                    user_name,
+                ),
+                reply_markup=InlineKeyboardMarkup(button),
+            )
 
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
