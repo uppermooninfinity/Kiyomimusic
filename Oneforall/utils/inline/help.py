@@ -4,7 +4,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.enums import ButtonStyle
 from Oneforall import app
 
-# Combined help buttons with integrated buttons from buttons.py
+# Combined help buttons integrating from both help.py and buttons.py
 HELP_BUTTONS = [
     ("Hɪsᴛᴏʀʏ", "HELP_History"),
     ("Tᴀɢ-Aʟʟ", "HELP_TagAll"),
@@ -65,7 +65,7 @@ def group_help_pagination(_, page: int = 0):
     """Create paginated help buttons in 3x3 grid format
     
     Displays 9 buttons per page (3x3 grid) with pagination controls.
-    Integrated from both help.py and buttons.py.
+    Integrates all buttons from both help.py and buttons.py.
     """
     buttons_per_page = 9  # 3x3 grid
     total_buttons = len(HELP_BUTTONS)
@@ -94,7 +94,8 @@ def group_help_pagination(_, page: int = 0):
                         callback_data=f"mplus {callback}",
                     )
                 )
-        keyboard.append(row)
+        if row:  # Only add non-empty rows
+            keyboard.append(row)
     
     # Add pagination and navigation buttons
     nav_row = []
@@ -124,6 +125,7 @@ def group_help_pagination(_, page: int = 0):
             )
         )
     
-    keyboard.append(nav_row)
+    if nav_row:
+        keyboard.append(nav_row)
     
     return InlineKeyboardMarkup(keyboard)
