@@ -1,9 +1,5 @@
-import asyncio
-from telethon import TelegramClient
-from telethon.sessions import StringSession
-from pyrogram import Client as PyroClient
-
-from Oneforall.plugins.clonedsessions.pmguard import PMGuard
+from pyrogram import Client
+from Oneforall.plugins.pmguard import PMGuard
 
 API_ID = 21762522
 API_HASH = "46800c1e399367a29d39554feedbe741"
@@ -12,61 +8,28 @@ active_clients = {}
 active_pmguard = {}
 
 
-def detect_session_type(session: str):
-
-    if not session:
-        return "invalid"
-
-    # Telethon sessions are usually long base64-like strings
-    if len(session) > 150 and not session.startswith("BQ"):
-        return "telethon"
-
-    # Pyrogram sessions often shorter / different encoding
-    return "pyrogram"
-
-
 async def start_session(user_id: int, session_string: str):
 
     if user_id in active_clients:
         return False, "⚠️ Session already running"
 
-    session_type = detect_session_type(session_string)
-
     try:
 
-        # =========================
-        # TELETHON SESSION
-        # =========================
-        if session_type == "telethon":
+        # clean session string
+        session_string = session_string.strip().replace("\n", "").replace(" ", "")
 
-            client = TelegramClient(
-                StringSession(session_string),
-                API_ID,
-                API_HASH
-            )
-
-        # =========================
-        # PYROGRAM SESSION
-        # =========================
-        elif session_type == "pyrogram":
-
-            client = PyroClient(
-                name=f"session_{user_id}",
-                api_id=API_ID,
-                api_hash=API_HASH,
-                session_string=session_string
-            )
-
-        else:
-            return False, "❌ Invalid session format"
+        client = Client(
+            name=f"session_{user_id}",
+            api_id=API_ID,
+            api_hash=API_HASH,
+            session_string=session_string
+        )
 
         await client.start()
 
         me = await client.get_me()
 
-        # =========================
-        # LOAD PM GUARD
-        # =========================
+        # load PMGuard
         pmguard = PMGuard(client, user_id)
         pmguard.load()
 
@@ -88,7 +51,7 @@ async def stop_session(user_id: int):
 
     try:
 
-        await client.disconnect()
+        await client.stop()
 
         active_clients.pop(user_id, None)
         active_pmguard.pop(user_id, None)
@@ -100,5 +63,4 @@ async def stop_session(user_id: int):
 
 
 def get_active_sessions():
-
     return list(active_clients.keys())
