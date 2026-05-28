@@ -106,7 +106,7 @@ def stream_markup_timer(_, vidid, chat_id, played, dur):
             )
         ],
         [
-            InlineKeyboardButton(text="༎ຶ ᴀᴅᴅ ᴍᴇ ɪɴ ʏᴏᴜʀ ɢʀᴏᴜᴘs ༎ຶ", url="https://t.me/Snowy_x_musicbot?startgroup=true"),
+            InlineKeyboardButton(text="༎ຶ ᴀᴅᴅ ᴍᴇ ༎ຶ", url="https://t.me/Snowy_x_musicbot?startgroup=true"),
         ],
     ]
         
@@ -123,7 +123,7 @@ def stream_markup(_, videoid, chat_id):
         ],
         [
             InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data="close", style=ButtonStyle.PRIMARY),
-            InlineKeyboardButton(text="༎ຶ ᴀᴅᴅ ᴍᴇ ɪɴ ʏᴏᴜʀ ɢʀᴏᴜᴘs ༎ຶ", url="https://t.me/Snowy_x_musicbot?startgroup=true"),
+            InlineKeyboardButton(text="༎ຶ ᴀᴅᴅ ᴍᴇ ༎ຶ", url="https://t.me/Snowy_x_musicbot?startgroup=true"),
         ],
     ]
     return buttons
