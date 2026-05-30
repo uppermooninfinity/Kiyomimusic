@@ -23,9 +23,9 @@ from Oneforall.utils.inline import (
     autoplay_language_markup,
 )
 from Oneforall.utils.spotify_image import (
-    create_spotify_thumbnail_simple,
-    create_spotify_thumbnail_with_image,
+    create_spotify_thumbnail_with_yt_image,
     save_image_to_bytes,
+    format_time,
 )
 
 # Store previous tracks per chat
@@ -38,30 +38,6 @@ autoplay_queue = {}
 progress_messages = {}
 # Track update tasks
 update_tasks = {}
-
-
-def get_progress_bar(current_sec, total_sec, length=10):
-    """Generate a progress bar string"""
-    if total_sec == 0:
-        return "▁" * length
-    
-    percentage = current_sec / total_sec
-    filled = int(length * percentage)
-    bar = "▓" * filled + "▁" * (length - filled)
-    return bar
-
-
-def format_time(seconds):
-    """Convert seconds to MM:SS format"""
-    if isinstance(seconds, str):
-        return seconds
-    try:
-        seconds = int(seconds)
-        mins = seconds // 60
-        secs = seconds % 60
-        return f"{mins}:{secs:02d}"
-    except:
-        return "00:00"
 
 
 def askip_markup(chat_id=None, current_sec=0, total_sec=0):
@@ -278,41 +254,35 @@ async def autoplay_seek_command(client, message, _):
         cmd_parts = message.text.split()
         if len(cmd_parts) < 2:
             return await message.reply_text(
-                "<blockquote>📍 **ᴜsᴀɢᴇ:** /aseek <minutes>:<seconds>\n"
-                "ᴇxᴀᴍᴘʟᴇ: /aseek 1:30</blockquote>"
+                "<blockquote>📍 **ᴜsᴀɢᴇ:** /aseek <minutes> <seconds>\n"
+                "ᴇxᴀᴍᴘʟᴇ: /aseek 1 30</blockquote>"
             )
         
-        time_str = cmd_parts[1]
-        parts = time_str.split(":")
-        
-        if len(parts) != 2:
+        try:
+            minutes = int(cmd_parts[1])
+            seconds = int(cmd_parts[2]) if len(cmd_parts) > 2 else 0
+        except (ValueError, IndexError):
             return await message.reply_text(
                 "<blockquote>❌ **ɪɴᴠᴀʟɪᴅ ᴛɪᴍᴇ ғᴏʀᴍᴀᴛ**\n"
-                "ᴜsᴇ: MM:SS</blockquote>"
+                "ᴜsᴇ: /aseek <minutes> <seconds>\n"
+                "ᴇxᴀᴍᴘʟᴇ: /aseek 1 30</blockquote>"
             )
         
-        minutes, seconds = int(parts[0]), int(parts[1])
         total_seconds = minutes * 60 + seconds
         
         from Oneforall.core.call import Hotty
         
         if chat_id in current_autoplay_track:
-            track_info = current_autoplay_track[chat_id]
             await Hotty.seek_stream(chat_id, total_seconds)
             
             await message.reply_text(
-                f"<blockquote>📍 **sᴇᴇᴋɪɴɢ ᴛᴏ:** {time_str}</blockquote>"
+                f"<blockquote>📍 **sᴇᴇᴋɪɴɢ ᴛᴏ:** {format_time(total_seconds)}</blockquote>"
             )
         else:
             await message.reply_text(
                 "<blockquote>❌ **ɴᴏ sᴏɴɢ ᴄᴜʀʀᴇɴᴛʟʏ ᴘʟᴀʏɪɴɢ**</blockquote>"
             )
     
-    except ValueError:
-        await message.reply_text(
-            "<blockquote>❌ **ɪɴᴠᴀʟɪᴅ ᴛɪᴍᴇ ғᴏʀᴍᴀᴛ**\n"
-            "ᴜsᴇ: /aseek MM:SS</blockquote>"
-        )
     except Exception as e:
         print(f"Seek Error: {e}")
         await message.reply_text(
@@ -422,52 +392,56 @@ async def autoplay_progress_callback(client, CallbackQuery, _):
         await CallbackQuery.answer("❌ ɴᴏ sᴏɴɢ ᴘʟᴀʏɪɴɢ", show_alert=False)
 
 
-async def update_progress_bar(chat_id, message_id, total_duration, title, duration_str, mood):
-    """Update progress bar every second"""
+async def update_progress_bar(chat_id, message_id, total_duration, title, duration_str, thumbnail_url, mood):
+    """Update progress bar every 2 seconds with new image"""
     
     try:
         if chat_id not in current_autoplay_track:
             return
         
-        track = current_autoplay_track[chat_id]
         start_time = time.time()
-        elapsed = 0
+        last_update = 0
         
-        while chat_id in current_autoplay_track and elapsed < total_duration:
+        while chat_id in current_autoplay_track:
             elapsed = int(time.time() - start_time)
             
             if elapsed > total_duration:
-                elapsed = total_duration
+                break
             
             # Update track info
             current_autoplay_track[chat_id]["current_sec"] = elapsed
             
-            # Try to update message with new progress bar
-            try:
-                if chat_id in progress_messages and message_id == progress_messages[chat_id]:
-                    progress_bar = get_progress_bar(elapsed, int(total_duration), 15)
-                    
-                    new_caption = (
-                        "<blockquote>⚙️ **𝐀ᴜᴛ๏ᴘɭɑɣ 𝐒ᴏɴɢ ✮**</blockquote>\n\n"
-                        f"<blockquote>🦋 **𝐍๏Ꮗ 𝐏ʟᴀʏɪɴɢ:** {title[:40]}\n"
-                        f"{progress_bar}\n"
-                        f"🕐 **{format_time(elapsed)} / {duration_str}**</blockquote>\n"
-                        f"<blockquote><b>𝐏ɭᴜɢɩŋ 𝐃𝛆ᴠ𝛆ɭ๏ᴘ𝛆ɗ 𝐅ɩη𝛆ɭɣ 𝐁ɣ </b><a href='https://t.me/theinfinitynetwork'>˹𝐒η๏ᴡɣ 𝐍𝛆ʈᴡ๏ʀᴋ˼</a></b></blockquote>"
-                    )
-                    
-                    await app.edit_message_caption(
-                        chat_id=chat_id,
-                        message_id=message_id,
-                        caption=new_caption,
-                        reply_markup=askip_markup(chat_id, elapsed, int(total_duration)),
-                    )
-            except:
-                pass
+            # Update message every 2 seconds
+            if elapsed - last_update >= 2:
+                try:
+                    if chat_id in progress_messages and message_id == progress_messages[chat_id]:
+                        # Generate new thumbnail with updated progress
+                        spotify_img = create_spotify_thumbnail_with_yt_image(
+                            thumbnail_url,
+                            title,
+                            duration_str,
+                            elapsed,
+                            total_duration,
+                            mood
+                        )
+                        
+                        if spotify_img:
+                            img_bytes = save_image_to_bytes(spotify_img)
+                            
+                            await app.edit_message_media(
+                                chat_id=chat_id,
+                                message_id=message_id,
+                                media=await app.prepare_file(img_bytes)
+                            )
+                            
+                            last_update = elapsed
+                except Exception as e:
+                    print(f"Progress Bar Update Error: {e}")
             
             await asyncio.sleep(1)
     
     except Exception as e:
-        print(f"Progress Update Error: {e}")
+        print(f"Progress Update Task Error: {e}")
 
 
 async def process_autoplay_skip(chat_id, message):
@@ -491,7 +465,7 @@ async def process_autoplay_skip(chat_id, message):
 
         title = track_data.get("title", "Unknown")
         duration_str = track_data.get("duration", "Unknown")
-        thumbnail = track_data.get("thumb")
+        thumbnail_url = track_data.get("thumb", "")
 
         # Parse duration to seconds
         try:
@@ -539,8 +513,15 @@ async def process_autoplay_skip(chat_id, message):
             if isinstance(mood_data, dict):
                 mood = mood_data.get("mood", "chill")
             
-            # Generate Spotify-styled thumbnail
-            spotify_img = create_spotify_thumbnail_simple(title, duration_str, mood)
+            # Generate Spotify-styled thumbnail with YouTube image
+            spotify_img = create_spotify_thumbnail_with_yt_image(
+                thumbnail_url,
+                title,
+                duration_str,
+                0,  # current_sec
+                duration_sec,  # total_sec
+                mood
+            )
             
             if spotify_img:
                 img_bytes = save_image_to_bytes(spotify_img)
@@ -549,23 +530,17 @@ async def process_autoplay_skip(chat_id, message):
                     chat_id=chat_id,
                     photo=img_bytes,
                     caption=(
-                        "<blockquote>⚙️ **𝐒ʈʀ𝛆ɑɱ𝛆ɗ 𝐀ᴜᴛ๏ᴘɭɑɣ 𝐒ᴋɩᴘᴘ𝛆ɗ ✮**</blockquote>\n\n"
-                        f"<blockquote>🦋 **𝐍๏Ꮗ 𝐀ᴜᴛ๏ᴘɭɑɣɩŋʛ :** {title[:40]}\n"
-                        f"🕐 **𝐃ʋɽɑʈɩσŋ :** {duration_str}</blockquote>\n"
-                        f"<blockquote><b>𝐏ɭᴜɢɩŋ 𝐃𝛆ᴠ𝛆ɭ๏ᴘ𝛆ɗ 𝐅ɩη𝛆ɭɣ 𝐁ɣ </b><a href='https://t.me/theinfinitynetwork'>˹𝐒η๏ᴡɣ 𝐍𝛆ʈᴡ๏ʀᴋ˼</a></b></blockquote>"
+                        "<blockquote>⚙️ **𝐒ʈʀ𝛆ɑɱ𝛆ɗ 𝐀ᴜᴛ๏ᴘɭɑɣ 𝐒ᴋɩᴘᴘ𝛆ɗ ✮**</blockquote>"
                     ),
                     reply_markup=askip_markup(chat_id, 0, duration_sec),
                 )
             else:
-                # Fallback to original thumbnail
+                # Fallback
                 sent_message = await app.send_photo(
                     chat_id=chat_id,
-                    photo=thumbnail if thumbnail else config.YOUTUBE_IMG_URL,
+                    photo=thumbnail_url if thumbnail_url else config.YOUTUBE_IMG_URL,
                     caption=(
-                        "<blockquote>⚙️ **𝐒ʈʀ𝛆ɑɱ𝛆ɗ 𝐀ᴜᴛ๏ᴘɭɑɣ 𝐒ᴋɩᴘᴘ𝛆ɗ ✮**</blockquote>\n\n"
-                        f"<blockquote>🦋 **𝐍๏Ꮗ 𝐀ᴜᴛ๏ᴘɭɑɣɩŋʛ :** {title[:40]}\n"
-                        f"🕐 **𝐃ʋɽɑʈɩσŋ :** {duration_str}</blockquote>\n"
-                        f"<blockquote><b>𝐏ɭᴜɢɩŋ 𝐃𝛆ᴠ𝛆ɭ๏ᴘ𝛆ɗ 𝐅ɩη𝛆ɭɣ 𝐁ɣ </b><a href='https://t.me/theinfinitynetwork'>˹𝐒η๏ᴡɣ 𝐍𝛆ʈᴡ๏ʀᴋ˼</a></b></blockquote>"
+                        "<blockquote>⚙️ **𝐒ʈʀ𝛆ɑɱ𝛆ɗ 𝐀ᴜᴛ๏ᴘɭɑɣ 𝐒ᴋɩᴘᴘ𝛆ɗ ✮**</blockquote>"
                     ),
                     reply_markup=askip_markup(chat_id, 0, duration_sec),
                 )
@@ -577,17 +552,21 @@ async def process_autoplay_skip(chat_id, message):
                 "duration_sec": duration_sec,
                 "current_sec": 0,
                 "vidid": track_id,
+                "thumb": thumbnail_url,
             }
             
             progress_messages[chat_id] = sent_message.id
             
             # Cancel previous update task if exists
             if chat_id in update_tasks:
-                update_tasks[chat_id].cancel()
+                try:
+                    update_tasks[chat_id].cancel()
+                except:
+                    pass
             
             # Start progress bar update task
             update_tasks[chat_id] = asyncio.create_task(
-                update_progress_bar(chat_id, sent_message.id, duration_sec, title, duration_str, mood)
+                update_progress_bar(chat_id, sent_message.id, duration_sec, title, duration_str, thumbnail_url, mood)
             )
 
         except Exception as e:
@@ -652,4 +631,3 @@ async def get_autoplay_recommendation(chat_id: int):
             continue
 
     return None, None
-    
