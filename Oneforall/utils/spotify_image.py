@@ -286,7 +286,7 @@ def create_spotify_thumbnail_with_yt_image(
 
         draw.text(
             (WIDTH - 210, HEIGHT - 70),
-            "Spotify Style",
+            "SNOWY DEVELOPERS",
             fill=SPOTIFY_GREEN,
             font=fonts["small"]
         )
