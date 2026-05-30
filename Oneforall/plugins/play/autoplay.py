@@ -334,7 +334,7 @@ async def autoplay_queue_command(client, message, _):
 @app.on_callback_query(filters.regex("^aqueue\\|"))
 @languageCB
 async def autoplay_queue_callback(client, CallbackQuery, _):
-    """Show queue from button"""
+    """Show queue from button - FIXED to avoid message too long error"""
     
     chat_id = int(CallbackQuery.data.split("|")[1])
     
@@ -342,32 +342,42 @@ async def autoplay_queue_callback(client, CallbackQuery, _):
     
     if not autoplay_status:
         return await CallbackQuery.answer(
-            "❌ ᴀᴜᴛᴏᴘʟᴀʏ ɪs ɴᴏᴛ ᴇɴᴀʙʟᴇᴅ",
+            "❌ ᴀᴜᴛᴏᴘʟᴀʏ ᴅɪsᴀʙʟᴇᴅ",
             show_alert=True,
         )
     
     if chat_id not in previous_tracks or not previous_tracks[chat_id]:
         return await CallbackQuery.answer(
-            "📭 qᴜᴇᴜᴇ ɪs ᴇᴍᴘᴛʏ",
+            "📭 qᴜᴇᴜᴇ ᴇᴍᴘᴛʏ",
             show_alert=True,
         )
     
-    queue_text = "📋 **ᴀᴜᴛᴏᴘʟᴀʏ qᴜᴇᴜᴇ**\n\n"
+    # Build queue text with character limit (max 4096 for callback, but we use 3500 to be safe)
+    queue_text = "📋 **ᴀᴜᴛᴏᴘʟᴀʏ Qᴜᴇᴜᴇ**\n"
     
     if chat_id in current_autoplay_track:
         current = current_autoplay_track[chat_id]
-        queue_text += f"▶️ **ɴᴏᴡ ᴘʟᴀʏɪɴɢ:**\n"
-        queue_text += f"🎵 {current.get('title', 'Unknown')[:50]}\n"
-        queue_text += f"🕐 {current.get('duration', 'Unknown')}\n\n"
+        queue_text += f"▶️ {current.get('title', 'Unknown')[:40]}\n"
     
-    queue_text += f"**ᴜᴘᴄᴏᴍɪɴɢ ᴛʀᴀᴄᴋs ({len(previous_tracks[chat_id])}):**\n\n"
+    queue_text += "\n**ᴜᴘᴄᴏᴍɪɴɢ:**\n"
     
-    for idx, track in enumerate(previous_tracks[chat_id][:10], 1):
-        title = track.get("title", "Unknown")[:45]
-        queue_text += f"{idx}. {title}\n"
+    char_count = len(queue_text)
+    track_count = 0
     
-    if len(previous_tracks[chat_id]) > 10:
-        queue_text += f"\n... ᴀɴᴅ {len(previous_tracks[chat_id]) - 10} ᴍᴏʀᴇ"
+    # Add tracks until we hit character limit
+    for idx, track in enumerate(previous_tracks[chat_id], 1):
+        title = track.get("title", "Unknown")[:40]
+        line = f"{idx}. {title}\n"
+        
+        if char_count + len(line) > 3500:
+            remaining = len(previous_tracks[chat_id]) - idx
+            if remaining > 0:
+                queue_text += f"\n... ᴀɴᴅ {remaining} ᴍᴏʀᴇ"
+            break
+        
+        queue_text += line
+        char_count += len(line)
+        track_count += 1
     
     await CallbackQuery.answer(queue_text, show_alert=True)
 
@@ -392,7 +402,7 @@ async def autoplay_progress_callback(client, CallbackQuery, _):
         await CallbackQuery.answer("❌ ɴᴏ sᴏɴɢ ᴘʟᴀʏɪɴɢ", show_alert=False)
 
 
-async def update_progress_bar(chat_id, message_id, total_duration, title, duration_str, thumbnail_url, mood):
+async def update_progress_bar(chat_id, message_id, total_duration, title, duration_str, thumbnail_url, mood, artist=""):
     """Update progress bar every 2 seconds with new image"""
     
     try:
@@ -422,7 +432,8 @@ async def update_progress_bar(chat_id, message_id, total_duration, title, durati
                             duration_str,
                             elapsed,
                             total_duration,
-                            mood
+                            mood,
+                            artist
                         )
                         
                         if spotify_img:
@@ -466,6 +477,7 @@ async def process_autoplay_skip(chat_id, message):
         title = track_data.get("title", "Unknown")
         duration_str = track_data.get("duration", "Unknown")
         thumbnail_url = track_data.get("thumb", "")
+        artist = track_data.get("artist", "")
 
         # Parse duration to seconds
         try:
@@ -520,7 +532,8 @@ async def process_autoplay_skip(chat_id, message):
                 duration_str,
                 0,  # current_sec
                 duration_sec,  # total_sec
-                mood
+                mood,
+                artist
             )
             
             if spotify_img:
@@ -566,7 +579,7 @@ async def process_autoplay_skip(chat_id, message):
             
             # Start progress bar update task
             update_tasks[chat_id] = asyncio.create_task(
-                update_progress_bar(chat_id, sent_message.id, duration_sec, title, duration_str, thumbnail_url, mood)
+                update_progress_bar(chat_id, sent_message.id, duration_sec, title, duration_str, thumbnail_url, mood, artist)
             )
 
         except Exception as e:
