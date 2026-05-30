@@ -1,114 +1,105 @@
 """
 Spotify-styled image generation for autoplay thumbnails
+Creates beautiful, professional Spotify-like player cards with blurry backgrounds
 """
 import io
-import aiohttp
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 import textwrap
 
 
-async def download_image(url):
-    """Download image from URL"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=10) as resp:
-                if resp.status == 200:
-                    return await resp.read()
-    except Exception as e:
-        print(f"Image Download Error: {e}")
-    return None
-
-
-def create_spotify_thumbnail(thumbnail_url, title, duration, mood="chill"):
+def create_spotify_thumbnail_simple(title, duration, mood="chill"):
     """
-    Create a Spotify-styled thumbnail with blurry background
+    Create a simple Spotify-styled thumbnail with blurry gradient background
+    Perfect for generating thumbnails without needing album art
     
     Args:
-        thumbnail_url: URL of the original thumbnail
-        title: Song title
-        duration: Song duration
-        mood: Autoplay mood
+        title (str): Song title
+        duration (str): Song duration in MM:SS format
+        mood (str): Autoplay mood (chill, energetic, etc.)
     
     Returns:
-        PIL Image object
+        PIL.Image: Generated thumbnail image
     """
     try:
-        # Create a new image with Spotify colors
         width, height = 1080, 1080
         
-        # Download the thumbnail image
-        if isinstance(thumbnail_url, bytes):
-            thumb_img = Image.open(io.BytesIO(thumbnail_url))
-        else:
-            # If it's a URL string, you'd need to handle downloading
-            thumb_img = Image.new('RGB', (width, height), color=(20, 20, 20))
-        
-        # Resize thumbnail to fit
-        thumb_img = thumb_img.resize((width, height), Image.Resampling.LANCZOS)
-        
-        # Create a blurry background by duplicating and blurring
-        background = thumb_img.copy()
-        background = background.filter(ImageFilter.GaussianBlur(radius=40))
-        
-        # Darken the background
+        # Create dark background with gradient
         background = Image.new('RGB', (width, height), color=(20, 20, 20))
-        background.paste(thumb_img, (0, 0))
-        background = background.filter(ImageFilter.GaussianBlur(radius=30))
-        
-        # Add a dark overlay
-        overlay = Image.new('RGBA', (width, height), color=(0, 0, 0, 180))
-        background = background.convert('RGBA')
-        background = Image.alpha_composite(background, overlay)
-        background = background.convert('RGB')
-        
-        # Resize and center the thumbnail for the foreground
-        thumb_size = 500
-        thumb_img_resized = thumb_img.resize((thumb_size, thumb_size), Image.Resampling.LANCZOS)
-        
-        # Add rounded corners to thumbnail
-        thumb_rounded = Image.new('RGBA', (thumb_size, thumb_size), (0, 0, 0, 0))
-        thumb_img_rgba = thumb_img_resized.convert('RGBA')
-        
-        # Create mask for rounded corners
-        mask = Image.new('L', (thumb_size, thumb_size), 0)
-        mask_draw = ImageDraw.Draw(mask)
-        mask_draw.rounded_rectangle([0, 0, thumb_size, thumb_size], radius=50, fill=255)
-        thumb_rounded.paste(thumb_img_rgba, (0, 0), mask)
-        
-        # Center the thumbnail on the background
-        x_offset = (width - thumb_size) // 2
-        y_offset = (height - thumb_size) // 2 - 100
-        
-        background.paste(thumb_rounded, (x_offset, y_offset), thumb_rounded)
-        
-        # Add text
         draw = ImageDraw.Draw(background)
         
-        try:
-            title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 50)
-            info_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 35)
-        except:
-            title_font = ImageFont.load_default()
-            info_font = ImageFont.load_default()
+        # Create gradient overlay effect (Spotify colors - dark purple to dark blue)
+        for y in range(height):
+            ratio = y / height
+            r = int(20 + (40 * ratio))
+            g = int(20 + (30 * ratio))
+            b = int(20 + (50 * ratio))
+            draw.line([(0, y), (width, y)], fill=(r, g, b))
         
-        # Wrap title text
-        wrapped_title = textwrap.fill(title, width=30)
+        # Add decorative circles with Spotify green
+        accent_color = (29, 185, 84)  # Spotify green #1DB954
         
-        # Draw title
-        title_y = y_offset + thumb_size + 80
-        draw.text(
-            (width // 2, title_y),
-            wrapped_title,
-            font=title_font,
-            fill=(255, 255, 255),
-            anchor="mm"
+        # Top right circle
+        draw.ellipse(
+            [(width - 250, -80), (width + 100, 200)],
+            fill=accent_color,
+            outline=None
         )
         
-        # Draw duration and mood
+        # Bottom left circle
+        draw.ellipse(
+            [(-100, height - 250), (200, height + 100)],
+            fill=accent_color,
+            outline=None
+        )
+        
+        # Apply Gaussian blur for blurry background effect
+        background = background.filter(ImageFilter.GaussianBlur(radius=25))
+        
+        # Redraw text on blurred background
+        draw = ImageDraw.Draw(background)
+        
+        # Load fonts with fallback
+        try:
+            title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 65)
+            info_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 42)
+            small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 35)
+        except:
+            try:
+                # Fallback for macOS
+                title_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 65)
+                info_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 42)
+                small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 35)
+            except:
+                # Fallback to default font
+                title_font = ImageFont.load_default()
+                info_font = ImageFont.load_default()
+                small_font = ImageFont.load_default()
+        
+        # Calculate center position
+        center_y = height // 2
+        
+        # Wrap title text for multiple lines
+        wrapped_title = textwrap.fill(title, width=28)
+        title_lines = wrapped_title.split('\n')
+        
+        # Draw title with text stroke for better visibility
+        title_start_y = center_y - 120
+        for idx, line in enumerate(title_lines):
+            y_pos = title_start_y + (idx * 80)
+            draw.text(
+                (width // 2, y_pos),
+                line,
+                font=title_font,
+                fill=(255, 255, 255),
+                anchor="mm",
+                stroke_width=2,
+                stroke_fill=(0, 0, 0)
+            )
+        
+        # Draw duration and mood info
         info_text = f"🕐 {duration}  •  🎵 {mood.upper()}"
-        info_y = title_y + 100
         draw.text(
-            (width // 2, info_y),
+            (width // 2, center_y + 120),
             info_text,
             font=info_font,
             fill=(177, 177, 177),
@@ -116,19 +107,25 @@ def create_spotify_thumbnail(thumbnail_url, title, duration, mood="chill"):
         )
         
         # Add Spotify green accent bar at bottom
-        accent_color = (29, 185, 84)  # Spotify green
         draw.rectangle(
-            [(0, height - 20), (width, height)],
+            [(0, height - 50), (width, height)],
             fill=accent_color
         )
         
-        # Add play icon or accent
+        # Add play button and text on accent bar
         draw.text(
-            (width // 2, height - 10),
-            "▶ NOW PLAYING",
-            font=info_font,
+            (width // 2, height - 25),
+            "▶  NOW PLAYING",
+            font=small_font,
             fill=(255, 255, 255),
             anchor="mm"
+        )
+        
+        # Add subtle border
+        draw.rectangle(
+            [(0, 0), (width - 1, height - 1)],
+            outline=(50, 50, 50),
+            width=3
         )
         
         return background
@@ -138,95 +135,106 @@ def create_spotify_thumbnail(thumbnail_url, title, duration, mood="chill"):
         return None
 
 
-def create_spotify_thumbnail_simple(title, duration, mood="chill"):
+def create_spotify_thumbnail_with_image(thumbnail_bytes, title, duration, mood="chill"):
     """
-    Create a simple Spotify-styled thumbnail without needing to download images
+    Create a Spotify-styled thumbnail with actual album art and blurry background
+    Uses the provided thumbnail image as the base with blur effect
     
     Args:
-        title: Song title
-        duration: Song duration
-        mood: Autoplay mood
+        thumbnail_bytes (bytes): Raw bytes of the thumbnail image
+        title (str): Song title
+        duration (str): Song duration in MM:SS format
+        mood (str): Autoplay mood
     
     Returns:
-        PIL Image object
+        PIL.Image: Generated thumbnail image with album art
     """
     try:
         width, height = 1080, 1080
         
-        # Create dark background with gradient effect
-        background = Image.new('RGB', (width, height), color=(20, 20, 20))
+        # Load the thumbnail image
+        thumb_img = Image.open(io.BytesIO(thumbnail_bytes))
+        thumb_img = thumb_img.convert('RGB')
+        
+        # Resize for background (slightly larger for crop effect)
+        thumb_resized = thumb_img.resize((width + 200, height + 200), Image.Resampling.LANCZOS)
+        
+        # Create blurry background
+        background = thumb_resized.filter(ImageFilter.GaussianBlur(radius=40))
+        
+        # Add dark overlay to make text readable
+        overlay = Image.new('RGBA', (width, height), color=(0, 0, 0, 200))
+        background = background.crop((100, 100, 100 + width, 100 + height))
+        background = background.convert('RGBA')
+        background = Image.alpha_composite(background, overlay)
+        background = background.convert('RGB')
+        
+        # Add centered album art with rounded corners
+        thumb_size = 480
+        thumb_display = thumb_img.resize((thumb_size, thumb_size), Image.Resampling.LANCZOS)
+        
+        # Create rounded corners mask
+        mask = Image.new('L', (thumb_size, thumb_size), 0)
+        mask_draw = ImageDraw.Draw(mask)
+        mask_draw.rounded_rectangle([0, 0, thumb_size - 1, thumb_size - 1], radius=60, fill=255)
+        
+        thumb_display = thumb_display.convert('RGBA')
+        thumb_display.putalpha(mask)
+        
+        # Center album art vertically
+        x_offset = (width - thumb_size) // 2
+        y_offset = (height - thumb_size) // 2 - 120
+        
+        background.paste(thumb_display, (x_offset, y_offset), thumb_display)
+        
+        # Add text
         draw = ImageDraw.Draw(background)
         
-        # Create gradient overlay effect (Spotify colors)
-        for y in range(height):
-            ratio = y / height
-            r = int(20 + (40 * ratio))
-            g = int(20 + (30 * ratio))
-            b = int(20 + (50 * ratio))
-            draw.line([(0, y), (width, y)], fill=(r, g, b))
-        
-        # Add decorative shapes
-        accent_color = (29, 185, 84)  # Spotify green
-        
-        # Draw circles for decoration
-        circle_size = 200
-        draw.ellipse(
-            [(width - circle_size, -50), (width + 50, circle_size - 50)],
-            fill=accent_color,
-            outline=None
-        )
-        draw.ellipse(
-            [(-50, height - circle_size), (circle_size - 50, height + 50)],
-            fill=(29, 185, 84),
-            outline=None
-        )
-        
-        # Add blur effect to decorations
-        background = background.filter(ImageFilter.GaussianBlur(radius=20))
-        
-        # Re-add the text on top
-        draw = ImageDraw.Draw(background)
-        
+        # Load fonts with fallback
         try:
-            title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 60)
-            info_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 40)
+            title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 55)
+            info_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 38)
+            small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
         except:
-            title_font = ImageFont.load_default()
-            info_font = ImageFont.load_default()
+            try:
+                title_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 55)
+                info_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 38)
+                small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 32)
+            except:
+                title_font = ImageFont.load_default()
+                info_font = ImageFont.load_default()
+                small_font = ImageFont.load_default()
         
-        # Draw central content
-        center_y = height // 2
-        
-        # Wrap and draw title
-        wrapped_title = textwrap.fill(title, width=25)
+        # Draw title
+        wrapped_title = textwrap.fill(title, width=32)
+        title_y = y_offset + thumb_size + 80
         draw.text(
-            (width // 2, center_y - 100),
+            (width // 2, title_y),
             wrapped_title,
             font=title_font,
             fill=(255, 255, 255),
-            anchor="mm"
+            anchor="mm",
+            stroke_width=2,
+            stroke_fill=(0, 0, 0)
         )
         
         # Draw duration and mood
         info_text = f"🕐 {duration}  •  {mood.upper()}"
         draw.text(
-            (width // 2, center_y + 100),
+            (width // 2, title_y + 100),
             info_text,
             font=info_font,
             fill=(177, 177, 177),
             anchor="mm"
         )
         
-        # Add Spotify green bar at bottom
-        draw.rectangle(
-            [(0, height - 40), (width, height)],
-            fill=accent_color
-        )
-        
+        # Spotify green bar at bottom
+        accent_color = (29, 185, 84)
+        draw.rectangle([(0, height - 50), (width, height)], fill=accent_color)
         draw.text(
-            (width // 2, height - 20),
-            "▶ NOW PLAYING",
-            font=info_font,
+            (width // 2, height - 25),
+            "▶  NOW PLAYING",
+            font=small_font,
             fill=(255, 255, 255),
             anchor="mm"
         )
@@ -234,13 +242,24 @@ def create_spotify_thumbnail_simple(title, duration, mood="chill"):
         return background
     
     except Exception as e:
-        print(f"Simple Spotify Thumbnail Error: {e}")
+        print(f"Spotify Thumbnail with Image Error: {e}")
         return None
 
 
 def save_image_to_bytes(image):
-    """Convert PIL Image to bytes"""
+    """
+    Convert PIL Image to bytes for sending to Telegram
+    
+    Args:
+        image (PIL.Image): The image to convert
+    
+    Returns:
+        io.BytesIO: Image bytes ready to send, or None if failed
+    """
     try:
+        if image is None:
+            return None
+        
         img_bytes = io.BytesIO()
         image.save(img_bytes, format='PNG', quality=95)
         img_bytes.seek(0)
@@ -248,4 +267,3 @@ def save_image_to_bytes(image):
     except Exception as e:
         print(f"Image Save Error: {e}")
         return None
-      
