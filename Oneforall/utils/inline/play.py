@@ -1,4 +1,5 @@
 import math
+import time
 from pyrogram.enums import ButtonStyle
 
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -8,6 +9,16 @@ from Oneforall.utils.formatters import time_to_seconds
 
 from Oneforall.utils.stream.thumbnail import get_thumbnail_status
 
+
+def get_button_style():
+    """Get button style that cycles every 5 seconds: PRIMARY -> SUCCESS -> DANGER"""
+    cycle = int(time.time()) % 15
+    if cycle < 5:
+        return ButtonStyle.PRIMARY
+    elif cycle < 10:
+        return ButtonStyle.SUCCESS
+    else:
+        return ButtonStyle.DANGER
 
 
 def track_markup(_, videoid, user_id, channel, fplay):
@@ -36,6 +47,7 @@ def track_markup(_, videoid, user_id, channel, fplay):
         ],
     ]
     return buttons
+
 
 def stream_markup_timer(_, vidid, chat_id, played, dur):
     played_sec = time_to_seconds(played)
@@ -72,12 +84,14 @@ def stream_markup_timer(_, vidid, chat_id, played, dur):
         else "🖼 ᴛʜᴜᴍʙɴᴀɪʟ : ᴏғғ"
     )
 
+    button_style = get_button_style()
+
     buttons = [
         [
             InlineKeyboardButton(
                 text=f"{played} {bar} {dur}",
                 callback_data="GetTimer",
-                style=ButtonStyle.PRIMARY,
+                style=button_style,
             )
         ],
         [
@@ -109,9 +123,10 @@ def stream_markup_timer(_, vidid, chat_id, played, dur):
             InlineKeyboardButton(text="༎ຶ ᴀᴅᴅ ᴍᴇ ༎ຶ", url="https://t.me/Snowy_x_musicbot?startgroup=true"),
         ],
     ]
-        
+
     return buttons
-    
+
+
 def stream_markup(_, videoid, chat_id):
     buttons = [
         [
@@ -127,7 +142,6 @@ def stream_markup(_, videoid, chat_id):
         ],
     ]
     return buttons
-    
 
 
 def autoplay_mood_markup():
@@ -150,15 +164,6 @@ def autoplay_mood_markup():
                 text=moods[i][0],
                 callback_data=f"songconfig_mood:{moods[i][1]}"
             )
-
-
-
-
-
-
-
-
-
         ]
 
         if i + 1 < len(moods):
@@ -255,8 +260,6 @@ def filters_markup_page_1():
         InlineKeyboardButton(
             text="❌ ᴄʟᴏsᴇ",
             callback_data="close"
-
-
         )
     ])
 
@@ -282,9 +285,6 @@ def filters_markup_page_2():
                 callback_data=f"ApplyFilter {filter_key}"
             )
         ])
-
-
-
 
     buttons.append([
         InlineKeyboardButton(
@@ -348,12 +348,6 @@ def filters_markup_page_3():
     return InlineKeyboardMarkup(buttons)
 
 
-
-
-
-
-
-
 def filters_markup_page_4():
     """Display fourth page of filters"""
     filters = [
@@ -392,7 +386,8 @@ def filters_markup_page_4():
     ])
 
     return InlineKeyboardMarkup(buttons)
-    
+
+
 def playlist_markup(_, videoid, user_id, ptype, channel, fplay):
     buttons = [
         [
@@ -421,10 +416,6 @@ def playlist_markup(_, videoid, user_id, ptype, channel, fplay):
     return buttons
 
 
-
-
-
-
 def livestream_markup(_, videoid, user_id, mode, channel, fplay):
     buttons = [
         [
@@ -440,7 +431,7 @@ def livestream_markup(_, videoid, user_id, mode, channel, fplay):
             ),
         ],
     ]
-    return livestream_markup
+    return buttons
 
 
 def slider_markup(_, videoid, user_id, query, query_type, channel, fplay):
@@ -474,14 +465,7 @@ def slider_markup(_, videoid, user_id, query, query_type, channel, fplay):
     return buttons
 
 
-
-
-
 ## Telegram Markup
-
-
-
-
 
 
 def telegram_markup(_, chat_id):
@@ -497,16 +481,10 @@ def telegram_markup(_, chat_id):
     return buttons
 
 
-
 ## Queue Markup
 
 
-
-
-
 def queue_markup(_, videoid, chat_id):
-
-
     buttons = [
         [
             InlineKeyboardButton(
@@ -547,10 +525,6 @@ def queue_markup(_, videoid, chat_id):
     ]
 
     return buttons
-
-
-
-
 
 
 def stream_markup2(_, chat_id):
@@ -603,11 +577,14 @@ def stream_markup_timer2(_, chat_id, played, dur):
     else:
         bar = "——————————◉"
 
+    button_style = get_button_style()
+
     buttons = [
         [
             InlineKeyboardButton(
                 text=f"{played} {bar} {dur}",
                 callback_data="GetTimer",
+                style=button_style,
             )
         ],
         [
@@ -628,10 +605,6 @@ def stream_markup_timer2(_, chat_id, played, dur):
         ],
     ]
     return buttons
-
-
-
-
 
 
 def panel_markup_1(_, videoid, chat_id):
@@ -679,7 +652,6 @@ def panel_markup_1(_, videoid, chat_id):
     return buttons
 
 
-
 def panel_markup_2(_, videoid, chat_id):
     buttons = [
         [
@@ -722,7 +694,6 @@ def panel_markup_2(_, videoid, chat_id):
     return buttons
 
 
-
 def panel_markup_5(_, videoid, chat_id):
     buttons = [
         [
@@ -756,6 +727,7 @@ def panel_markup_5(_, videoid, chat_id):
         ],
     ]
     return buttons
+
 
 def panel_markup_3(_, videoid, chat_id):
     buttons = [
@@ -815,11 +787,14 @@ def panel_markup_4(_, vidid, chat_id, played, dur):
     else:
         bar = "——————————◉"
 
+    button_style = get_button_style()
+
     buttons = [
         [
             InlineKeyboardButton(
                 text=f"{played} {bar} {dur}",
                 callback_data="GetTimer",
+                style=button_style,
             )
         ],
         [
