@@ -98,7 +98,7 @@ class VoiceAbuseDetector:
                 text = self.recognizer.recognize_google(audio)
                 print(f"[VoiceAbuse] Transcribed: {text}")
                 return text
-            except sr.UnknownValueValue:
+            except sr.UnknownValueError:
                 return None
             except sr.RequestError as e:
                 print(f"[VoiceAbuse] API error: {e}")
@@ -144,11 +144,14 @@ async def handle_voiceabuse_command(client, message):
     chat_id = message.chat.id
     user_id = message.from_user.id
     
+    print(f"[VoiceAbuse] /voiceabuse command received from {user_id} in chat {chat_id}")
+    
     try:
         member = await client.get_chat_member(chat_id, user_id)
         is_admin = member.status in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]
-    except:
-        await message.reply_text("❌ Could not verify your permissions.")
+    except Exception as e:
+        print(f"[VoiceAbuse] Error checking member: {e}")
+        await message.reply_text(f"❌ Error: {str(e)}")
         return
     
     is_owner_or_sudo = user_id == OWNER_ID or user_id in SUDOERS
@@ -167,6 +170,7 @@ async def handle_voiceabuse_command(client, message):
         f"Warn Limit: {settings['warn_limit']}\n"
         f"Mute Duration: {settings['mute_duration']}s"
     )
+    print(f"[VoiceAbuse] Sent voice abuse status to user {user_id}")
 
 
 @app.on_message(filters.command("setvoiceabuse") & filters.group)
@@ -175,11 +179,14 @@ async def handle_setvoiceabuse_command(client, message):
     chat_id = message.chat.id
     user_id = message.from_user.id
     
+    print(f"[VoiceAbuse] /setvoiceabuse command received from {user_id} in chat {chat_id}")
+    
     try:
         member = await client.get_chat_member(chat_id, user_id)
         is_admin = member.status in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]
-    except:
-        await message.reply_text("❌ Could not verify your permissions.")
+    except Exception as e:
+        print(f"[VoiceAbuse] Error checking member: {e}")
+        await message.reply_text(f"❌ Error: {str(e)}")
         return
     
     is_owner_or_sudo = user_id == OWNER_ID or user_id in SUDOERS
@@ -197,6 +204,9 @@ async def handle_setvoiceabuse_command(client, message):
         if setting == "enabled" and len(args) > 2:
             voice_abuse_detector.set_settings(chat_id, enabled=args[2].lower() == "true")
             await message.reply_text("✅ Voice abuse detection updated.")
+        elif setting == "disabled" and len(args) > 2:
+            voice_abuse_detector.set_settings(chat_id, enabled=False)
+            await message.reply_text("✅ Voice abuse detection disabled.")
         elif setting == "threshold" and len(args) > 2:
             threshold = float(args[2])
             voice_abuse_detector.set_settings(chat_id, threshold=threshold)
@@ -211,7 +221,8 @@ async def handle_setvoiceabuse_command(client, message):
         else:
             await message.reply_text("❌ Invalid setting.")
     except Exception as e:
+        print(f"[VoiceAbuse] Error in setvoiceabuse: {e}")
         await message.reply_text(f"❌ Error: {str(e)}")
 
 
-print("[VoiceAbuse] Module loaded!")
+print("[VoiceAbuse] Module loaded successfully!")
