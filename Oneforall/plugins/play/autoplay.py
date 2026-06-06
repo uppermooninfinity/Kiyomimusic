@@ -662,4 +662,24 @@ async def process_autoplay_skip(chat_id, message):
             progress_messages[chat_id] = sent_message.id
             
             # Cancel previous update task if exists
-            if chat_id in 
+            if chat_id in update_tasks:
+                try:
+                    update_tasks[chat_id].cancel()
+                except:
+                    pass
+            
+            # Start progress bar update task
+            update_tasks[chat_id] = asyncio.create_task(
+                update_progress_buttons(chat_id, sent_message.id, duration_sec, title, duration_str, thumbnail_url, mood, artist)
+            )
+
+        except Exception as e:
+            print(f"Thumbnail Send Error: {e}")
+
+    except Exception as e:
+        print(f"Askip Error: {e}")
+
+        return await message.reply_text(
+            "<blockquote>❌ **ғᴀɪʟᴇᴅ ᴛᴏ sᴋɪᴘ ᴀᴜᴛᴏᴘʟᴀʏ sᴏɴɢ**</blockquote>"
+        )
+        
