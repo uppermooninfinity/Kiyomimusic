@@ -5,6 +5,7 @@ from pyrogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
 )
+from pyrogram.enums import ButtonStyle
 
 import config
 from config import BANNED_USERS, lyrical
@@ -32,17 +33,19 @@ def askip_markup():
                 InlineKeyboardButton(
                     "sᴋɪᴘ",
                     callback_data="askip",
+                    style=ButtonStyle.SUCCESS,
                 ),
                 InlineKeyboardButton(
                     "ᴄʟᴏsᴇ",
                     callback_data="close",
+                    style=ButtonStyle.DANGER,
                 ),
             ]
         ]
     )
 
 
-@app.on_message(filters.command("songconfig") & filters.group & ~BANNED_USERS)
+@app.on_message(filters.command("mconfig") & filters.group & ~BANNED_USERS)
 @languageCB
 async def songconfig_command(client, message, _):
 
@@ -269,9 +272,10 @@ async def process_autoplay_skip(chat_id, message):
                 chat_id=chat_id,
                 photo=thumbnail if thumbnail else config.YOUTUBE_IMG_URL,
                 caption=(
-                    "⏭️ **ᴀᴜᴛᴏᴘʟᴀʏ sᴋɪᴘᴘᴇᴅ**\n\n"
-                    f"🎵 **ɴᴏᴡ ᴘʟᴀʏɪɴɢ:** {title[:40]}\n"
-                    f"⏱ **ᴅᴜʀᴀᴛɪᴏɴ:** {duration_min}"
+                    "<blockquote>⚙️ **𝐒ʈʀ𝛆ɑɱ𝛆ɗ 𝐀ᴜᴛ๏ᴘɭɑɣ 𝐒ᴋɩᴘᴘ𝛆ɗ ✮**</blockquote>\n\n"
+                    f"<blockquote>🦋 **𝐍๏Ꮗ 𝐀ᴜᴛ๏ᴘɭɑɣɩŋʛ :** {title[:40]}\n"
+                    f"🕐 **𝐃ʋɽɑʈɩσŋ :** {duration_min}</blockquote>\n"
+                    f"<blockquote><b>𝐏ɭᴜɢɩŋ 𝐃𝛆ᴠ𝛆ɭ๏ᴘ𝛆ɗ 𝐅ɩη𝛆ɭɣ 𝐁ɣ </b><a href='https://t.me/theinfinitynetwork'>˹𝐒η๏ᴡɣ 𝐍𝛆ʈᴡ๏ʀᴋ˼</a></blockquote>\n"
                 ),
                 reply_markup=askip_markup(),
             )
