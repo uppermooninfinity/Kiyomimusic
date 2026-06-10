@@ -2,6 +2,7 @@ import random
 import asyncio
 import time
 from datetime import datetime
+from collections import defaultdict
 
 from pyrogram import filters
 from pyrogram.types import (
@@ -25,12 +26,18 @@ from Oneforall.utils.inline import (
     autoplay_language_markup,
 )
 
-# Store previous tracks per chat
-previous_tracks = {}
+# Store autoplay queues per chat (unlimited)
+autoplay_queues = defaultdict(list)
 # Store progress update tasks per chat
 progress_tasks = {}
 # Store active autoplay messages for progress bar updates
 autoplay_messages = {}
+# Store track IDs to prevent exact duplicates within recent history
+track_history = defaultdict(set)
+# Maximum history to keep
+MAX_HISTORY = 50
+# Queue prefetch size
+QUEUE_PREFETCH = 10
 
 
 def build_progress_button(played_sec, total_sec):
@@ -148,6 +155,8 @@ async def update_progress_bar(chat_id, message_id, start_time, duration_sec, tit
                 break
             
             await asyncio.sleep(update_interval)
+    except asyncio.CancelledError:
+        pass
     except Exception as e:
         print(f"Progress bar error: {e}")
     finally:
@@ -156,6 +165,34 @@ async def update_progress_bar(chat_id, message_id, start_time, duration_sec, tit
             del autoplay_messages[chat_id]
         if chat_id in progress_tasks:
             del progress_tasks[chat_id]
+
+
+async def prefetch_queue(chat_id):
+    """Prefetch songs for the queue to keep it full"""
+    try:
+        while True:
+            if chat_id not in autoplay_queues:
+                await asyncio.sleep(5)
+                continue
+            
+            # Keep queue stocked
+            if len(autoplay_queues[chat_id]) < QUEUE_PREFETCH:
+                try:
+                    for _ in range(QUEUE_PREFETCH - len(autoplay_queues[chat_id])):
+                        track_data, track_id = await get_autoplay_recommendation(chat_id)
+                        if track_data and track_id:
+                            autoplay_queues[chat_id].append({
+                                "track_data": track_data,
+                                "track_id": track_id
+                            })
+                except Exception as e:
+                    print(f"Queue prefetch error: {e}")
+            
+            await asyncio.sleep(10)
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        print(f"Prefetch error: {e}")
 
 
 @app.on_message(filters.command("autoplay") & filters.group & ~BANNED_USERS)
@@ -207,6 +244,18 @@ async def autoplay_disable_callback(client, CallbackQuery, _):
     chat_id = CallbackQuery.message.chat.id
     
     await set_autoplay(chat_id, False)
+    
+    # Clear autoplay queue
+    if chat_id in autoplay_queues:
+        autoplay_queues[chat_id].clear()
+    
+    # Cancel progress tasks
+    if chat_id in progress_tasks:
+        try:
+            progress_tasks[chat_id].cancel()
+        except:
+            pass
+        del progress_tasks[chat_id]
     
     try:
         await CallbackQuery.answer()
@@ -348,6 +397,10 @@ async def toggle_autoplay(client, CallbackQuery, _):
     if autoplay_status:
 
         await set_autoplay(chat_id, False)
+        
+        # Clear queue
+        if chat_id in autoplay_queues:
+            autoplay_queues[chat_id].clear()
 
         try:
             await CallbackQuery.message.edit_reply_markup(None)
@@ -414,8 +467,14 @@ async def autoplay_close_callback(client, CallbackQuery):
     
     # Cancel progress update task if exists
     if chat_id in progress_tasks:
-        progress_tasks[chat_id].cancel()
-        del progress_tasks[chat_id]
+        try:
+            progress_tasks[chat_id].cancel()
+        except:
+            pass
+        try:
+            del progress_tasks[chat_id]
+        except:
+            pass
     
     try:
         await CallbackQuery.message.delete()
@@ -430,17 +489,34 @@ async def process_autoplay_skip(chat_id, message):
     autoplay_status = await is_autoplay_on(chat_id)
 
     if not autoplay_status:
-        return await message.reply_text(
-            "❌ **ᴀᴜᴛᴏᴘʟᴀʏ ɪs ɴᴏᴛ ᴇɴᴀʙʟᴇᴅ**"
-        )
+        try:
+            return await message.reply_text(
+                "❌ **ᴀᴜᴛᴏᴘʟᴀʏ ɪs ɴᴏᴛ ᴇɴᴀʙʟᴇᴅ**"
+            )
+        except:
+            pass
+        return
 
     try:
-        track_data, track_id = await get_autoplay_recommendation(chat_id)
+        # Get next track from queue
+        track_data, track_id = None, None
+        
+        if chat_id in autoplay_queues and len(autoplay_queues[chat_id]) > 0:
+            queued = autoplay_queues[chat_id].pop(0)
+            track_data = queued["track_data"]
+            track_id = queued["track_id"]
+        else:
+            # Fetch a new one if queue is empty
+            track_data, track_id = await get_autoplay_recommendation(chat_id)
 
         if not track_data or not track_id:
-            return await message.reply_text(
-                "❌ **ɴᴏ ɴᴇxᴛ ᴀᴜᴛᴏᴘʟᴀʏ sᴏɴɢ ғᴏᴜɴᴅ**"
-            )
+            try:
+                return await message.reply_text(
+                    "❌ **ɴᴏ ɴᴇxᴛ ᴀᴜᴛᴏᴘʟᴀʏ sᴏɴɢ ғᴏᴜɴᴅ**"
+                )
+            except:
+                pass
+            return
 
         title = track_data.get("title", "Unknown")
         duration_min = track_data.get("duration", "Unknown")
@@ -456,31 +532,41 @@ async def process_autoplay_skip(chat_id, message):
             )
         except Exception as e:
             print(f"Download Error: {e}")
-
-            return await message.reply_text(
-                "❌ **ғᴀɪʟᴇᴅ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ sᴏɴɢ**"
-            )
+            try:
+                return await message.reply_text(
+                    "❌ **ғᴀɪʟᴇᴅ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ sᴏɴɢ**"
+                )
+            except:
+                pass
+            return
 
         try:
-
             await Hotty.skip_stream(
                 chat_id,
                 file_path,
                 video=None,
             )
-
         except Exception as e:
             print(f"Change Stream Error: {e}")
-
-            return await message.reply_text(
-                "❌ **ғᴀɪʟᴇᴅ ᴛᴏ ᴄʜᴀɴɢᴇ sᴛʀᴇᴀᴍ**"
-            )
+            try:
+                return await message.reply_text(
+                    "❌ **ғᴀɪʟᴇᴅ ᴛᴏ ᴄʜᴀɴɢᴇ sᴛʀᴇᴀᴍ**"
+                )
+            except:
+                pass
+            return
 
         try:
             # Cancel previous progress task if exists
             if chat_id in progress_tasks:
-                progress_tasks[chat_id].cancel()
-                del progress_tasks[chat_id]
+                try:
+                    progress_tasks[chat_id].cancel()
+                except:
+                    pass
+                try:
+                    del progress_tasks[chat_id]
+                except:
+                    pass
             
             # Send initial message with progress bar button
             initial_progress = build_progress_button(0, duration_sec)
@@ -523,16 +609,16 @@ async def process_autoplay_skip(chat_id, message):
 
     except Exception as e:
         print(f"Askip Error: {e}")
-
-        return await message.reply_text(
-            "❌ **ғᴀɪʟᴇᴅ ᴛᴏ sᴋɪᴘ ᴀᴜᴛᴏᴘʟᴀʏ sᴏɴɢ**"
-        )
+        try:
+            return await message.reply_text(
+                "❌ **ғᴀɪʟᴇᴅ ᴛᴏ sᴋɪᴘ ᴀᴜᴛᴏᴘʟᴀʏ sᴏɴɢ**"
+            )
+        except:
+            pass
 
 
 async def get_autoplay_recommendation(chat_id: int):
-
-    if chat_id not in previous_tracks:
-        previous_tracks[chat_id] = []
+    """Get next autoplay track with unlimited songs and no repetition"""
 
     mood_data = await get_autoplay_mood(chat_id)
 
@@ -543,28 +629,30 @@ async def get_autoplay_recommendation(chat_id: int):
         mood = mood_data.get("mood", "chill")
         language = mood_data.get("language", "english")
 
-    used_ids = [x["vidid"] for x in previous_tracks[chat_id]]
+    # Get recent track history to avoid duplicates
+    used_ids = track_history[chat_id]
 
-    for _ in range(10):
-
-        query = (
-            f"{random.choice(['best', 'top', 'viral', 'popular'])} "
-            f"{language} {mood} songs"
-        )
-
+    # Try to find a new track
+    for attempt in range(15):
         try:
+            # Fetch popular songs based on mood
+            query = (
+                f"{random.choice(['best', 'top', 'viral', 'popular', 'trending'])} "
+                f"{language} {mood} songs"
+            )
+
             track_data, track_id = await YouTube.track(query)
 
             if not track_data or not track_id:
+                await asyncio.sleep(0.5)
                 continue
 
+            # Skip if already played recently
             if track_id in used_ids:
+                await asyncio.sleep(0.5)
                 continue
 
-            if len(previous_tracks[chat_id]) >= 10:
-                previous_tracks[chat_id].pop(0)
-
-            # Convert duration to seconds for progress bar
+            # Parse duration
             duration_str = track_data.get("duration", "0:00")
             try:
                 parts = duration_str.split(":")
@@ -579,19 +667,50 @@ async def get_autoplay_recommendation(chat_id: int):
 
             track_data["duration_sec"] = duration_sec
 
-            previous_tracks[chat_id].append(
-                {
-                    "title": track_data.get("title"),
-                    "vidid": track_id,
-                    "mood": mood,
-                    "language": language,
-                }
-            )
+            # Add to history (keep max 50 tracks)
+            track_history[chat_id].add(track_id)
+            if len(track_history[chat_id]) > MAX_HISTORY:
+                # Remove oldest entries
+                oldest = list(track_history[chat_id])[:len(track_history[chat_id]) - MAX_HISTORY]
+                for old_id in oldest:
+                    track_history[chat_id].discard(old_id)
 
             return track_data, track_id
 
         except Exception as e:
-            print(f"Autoplay Error: {e}")
+            print(f"Autoplay fetch attempt {attempt + 1} error: {e}")
+            await asyncio.sleep(0.5)
             continue
+
+    # If we can't find new songs, clear history and try again
+    print(f"Clearing track history for chat {chat_id} to find new songs")
+    track_history[chat_id].clear()
+    
+    try:
+        query = (
+            f"{random.choice(['best', 'top', 'viral', 'popular', 'trending'])} "
+            f"{language} {mood} songs"
+        )
+        track_data, track_id = await YouTube.track(query)
+        
+        if track_data and track_id:
+            # Parse duration
+            duration_str = track_data.get("duration", "0:00")
+            try:
+                parts = duration_str.split(":")
+                if len(parts) == 2:
+                    duration_sec = int(parts[0]) * 60 + int(parts[1])
+                elif len(parts) == 3:
+                    duration_sec = int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+                else:
+                    duration_sec = 0
+            except:
+                duration_sec = 0
+
+            track_data["duration_sec"] = duration_sec
+            track_history[chat_id].add(track_id)
+            return track_data, track_id
+    except Exception as e:
+        print(f"Final autoplay attempt error: {e}")
 
     return None, None
