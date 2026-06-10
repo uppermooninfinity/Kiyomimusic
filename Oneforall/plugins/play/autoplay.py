@@ -102,7 +102,7 @@ def askip_markup_with_progress(progress_text):
                 InlineKeyboardButton(
                     "⌯ᴄʟᴏsᴇ⌯",
                     callback_data="autoplay_close",
-                    style=ButtonStyle.DANGER,
+                    style=ButtonStyle.SUCCESS,
                 ),
             ]
         ]
