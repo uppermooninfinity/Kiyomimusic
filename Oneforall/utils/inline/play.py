@@ -79,9 +79,9 @@ def stream_markup_timer(_, vidid, chat_id, played, dur):
     thumb_status = get_thumbnail_status(chat_id)
 
     thumb_text = (
-        "🖼 ᴛʜᴜᴍʙɴᴀɪʟ : ᴏɴ"
+        "🖼 ᴛʜᴜᴍʙ: ✅"
         if thumb_status == "on"
-        else "🖼 ᴛʜᴜᴍʙɴᴀɪʟ : ᴏғғ"
+        else "🖼 ᴛʜᴜᴍʙ: ❌"
     )
 
     button_style = get_button_style()
@@ -96,20 +96,23 @@ def stream_markup_timer(_, vidid, chat_id, played, dur):
         ],
         [
             InlineKeyboardButton(
-                text="‣‣I",
-                callback_data=f"ADMIN Skip|{chat_id}"
+                text="»",
+                callback_data=f"ADMIN Skip|{chat_id}",
+                style=ButtonStyle.PRIMARY
             ),
             InlineKeyboardButton(
-                text="▷",
-                callback_data=f"ADMIN Pause|{chat_id}"
+                text="▸",
+                callback_data=f"ADMIN Pause|{chat_id}",
+                style=ButtonStyle.PRIMARY
             ),
             InlineKeyboardButton(
-                text="💿",
-                callback_data=f"ADMIN Replay|{chat_id}"
+                text="⟳",
+                callback_data=f"ADMIN Replay|{chat_id}",
+                style=ButtonStyle.DANGER
             ),
         ],
         [
-            InlineKeyboardButton(text="ᴀᴜᴛᴏᴘʟᴀʏ 🔁", callback_data=f"AutoPlay|{chat_id}"),
+            InlineKeyboardButton(text="♫", callback_data=f"AutoPlay|{chat_id}"),
             InlineKeyboardButton(text=thumb_text, callback_data=f"THUMBTOGGLE|{chat_id}"),
         ],
         [
