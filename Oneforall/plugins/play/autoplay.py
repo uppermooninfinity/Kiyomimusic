@@ -63,14 +63,19 @@ def askip_markup():
         [
             [
                 InlineKeyboardButton(
-                    "sᴋɪᴘ",
+                    "⌯sᴋɪᴘ⌯",
                     callback_data="askip",
                     style=ButtonStyle.SUCCESS,
                 ),
                 InlineKeyboardButton(
-                    "ᴄʟᴏsᴇ",
-                    callback_data="autoplay_close",
+                    "⌯ᴇᴠᴇʀʏ ᴘʀᴏʙʟᴇᴍ's sᴏʟᴜᴛɪᴏɴ⌯",
+                    url="https://t.me/theinfinity_support",
                     style=ButtonStyle.DANGER,
+                ),
+                InlineKeyboardButton(
+                    "⌯ᴄʟᴏsᴇ⌯",
+                    callback_data="autoplay_close",
+                    style=ButtonStyle.SUCCESS,
                 ),
             ]
         ]
@@ -83,18 +88,19 @@ def askip_markup_with_progress(progress_text):
         [
             [
                 InlineKeyboardButton(
-                    progress_text,
-                    callback_data="progress_noop",
+                    "⌯ᴇᴠᴇʀʏ ᴘʀᴏʙʟᴇᴍ's sᴏʟᴜᴛɪᴏɴ⌯",
+                    url="https://t.me/theinfinity_support",
+                    style=ButtonStyle.DANGER,
                 ),
             ],
             [
                 InlineKeyboardButton(
-                    "sᴋɪᴘ",
+                    "⌯sᴋɪᴘ⌯",
                     callback_data="askip",
                     style=ButtonStyle.SUCCESS,
                 ),
                 InlineKeyboardButton(
-                    "ᴄʟᴏsᴇ",
+                    "⌯ᴄʟᴏsᴇ⌯",
                     callback_data="autoplay_close",
                     style=ButtonStyle.DANGER,
                 ),
