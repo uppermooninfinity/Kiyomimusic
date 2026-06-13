@@ -62,13 +62,13 @@ async def init():
     await Hotty.decorators()
 
     LOGGER("Oneforall").info(
-        "ᴅʀᴏᴘ ʏᴏᴜʀ ɢɪʀʟꜰʀɪᴇɴᴅ'ꜱ ɴᴜᴍʙᴇʀ ᴀᴛ ᴊᴏɪɴ https://t.me/PiratesMainchat ꜰᴏʀ ᴀɴʏ ɪꜱꜱᴜᴇꜱ"
+        "ᴅʀᴏᴘ ʏᴏᴜʀ ɢɪʀʟꜰʀɪᴇɴᴅ'ꜱ ɴᴜᴍʙᴇʀ ᴀᴛ ᴊᴏɪɴ https://t.me/theinfinity_support ꜰᴏʀ ᴀɴʏ ɪꜱꜱᴜᴇꜱ"
     )
 
     await idle()
     await app.stop()
     await userbot.stop()
-    LOGGER("Oneforall").info("Stopping One for all Bot...")
+    LOGGER("Oneforall").info("Stopping Snowy..")
 
 
 if __name__ == "__main__":
