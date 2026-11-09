@@ -4,6 +4,7 @@ from typing import Union
 import aiohttp
 from bs4 import BeautifulSoup
 from py_yt import VideosSearch
+import aiohttp
 
 
 class RessoAPI:
@@ -11,6 +12,9 @@ class RessoAPI:
         self.regex = r"^(https:\/\/m.resso.com\/)(.*)$"
         self.base = "https://m.resso.com/"
 
+    # erros are resolved accoridng to the previously placed old files 
+    # commented out the weak parts processsed by the files
+    
     async def valid(self, link: str):
         if re.search(self.regex, link):
             return True
